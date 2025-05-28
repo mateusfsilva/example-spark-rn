@@ -13,6 +13,8 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@azure/core-asynciterator-polyfill": "^1.0.2",
+    "@buildonspark/spark-sdk": "0.1.23",
     "@expo/vector-icons": "^14.1.0",
     "@react-navigation/native": "^7.1.6",
     "expo": "~53.0.9",
@@ -23,14 +25,16 @@
     "expo-status-bar": "~2.2.3",
     "expo-system-ui": "~5.0.7",
     "expo-web-browser": "~14.1.6",
+    "node-libs-react-native": "^1.2.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-get-random-values": "~1.11.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.10.0",
     "react-native-web": "~0.20.0",
-    "@buildonspark/spark-sdk": "0.1.23"
+    "text-encoding": "^0.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -1,3 +1,8 @@
+import "@azure/core-asynciterator-polyfill"
+import { Buffer } from "buffer"
+import "text-encoding"
+global.Buffer = Buffer
+
 import {
     ReactNativeSparkSigner,
     SparkWallet,

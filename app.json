@@ -15,7 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mateusfsilva.examplesparkrn"
+      "bundleIdentifier": "so.tmrw.example-spark-rn",
+      "appleTeamId": "YCF52PZ7TU"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.mateusfsilva.examplesparkrn"
+      "package": "so.tmrw.example_spark_rn"
     },
     "web": {
       "bundler": "metro",
