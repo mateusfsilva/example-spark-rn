@@ -41,6 +41,14 @@ export function useWallet() {
      * Indicates if the Bitcoin address should be shown
      */
     const [showBitcoinAddress, setShowBitcoinAddress] = useState(false)
+    /**
+     * Indicates if any claim operation is in progress
+     */
+    const [claimLoading, setClaimLoading] = useState(false)
+    /**
+     * Error message for claim operation, if any
+     */
+    const [claimError, setClaimError] = useState<string | null>(null)
 
     const logger = createLogger("useWallet")
 
@@ -183,6 +191,30 @@ export function useWallet() {
     }
 
     /**
+     * Claims a Bitcoin deposit using the provided transaction id.
+     * Updates the balance if successful.
+     * @param txid - The transaction id of the deposit
+     * @returns {Promise<void>}
+     */
+    const claimDeposit = async (txid: string) => {
+        setClaimLoading(true)
+        setClaimError(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            await sdk.claimDeposit(txid)
+
+            // Refresh balance after claim
+            const balance = await sdk.getBalance()
+            setBalance(Number(balance))
+        } catch (e: any) {
+            setClaimError(e?.message || "Failed to claim deposit")
+        } finally {
+            setClaimLoading(false)
+        }
+    }
+
+    /**
      * Resets the hook state and SparkSDK, clearing all wallet data.
      * @returns {Promise<void>}
      */
@@ -231,6 +263,12 @@ export function useWallet() {
         getBitcoinAddress,
         /** Hides the Bitcoin address and shows the button again */
         hideBitcoinAddress,
+        /** Claims a Bitcoin deposit using the provided transaction id */
+        claimDeposit,
+        /** Indicates if any claim operation is in progress */
+        claimLoading,
+        /** Error message for claim operation, if any */
+        claimError,
         /** Resets the hook state and SparkSDK */
         resetWalletState,
     }

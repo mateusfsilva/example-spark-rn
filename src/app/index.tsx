@@ -10,6 +10,8 @@ import {
     ActivityIndicator,
     Alert,
     TouchableOpacity,
+    Button,
+    TextInput,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import * as Clipboard from "expo-clipboard"
@@ -23,6 +25,7 @@ import { styles } from "@/app/styles"
 import { MaterialIcons } from "@expo/vector-icons"
 import { ShowBitcoinAddressButton } from "@/components/ShowBitcoinAddressButton"
 import { BitcoinAddressLabel } from "@/components/BitcoinAddressLabel"
+import { ClaimDepositForm } from "@/components/ClaimDepositForm"
 
 export default function Index() {
     const {
@@ -42,18 +45,29 @@ export default function Index() {
         showBitcoinAddress,
         getBitcoinAddress,
         hideBitcoinAddress,
+        claimDeposit,
+        claimLoading,
+        claimError,
     } = useWallet()
 
     const [showOpenForm, setShowOpenForm] = useState(false)
     const [mnemonic, setMnemonic] = useState("")
+    const [txid, setTxid] = useState("")
+    const [showClaimForm, setShowClaimForm] = useState(false)
 
     const handlePaste = async () => {
         const text = await Clipboard.getStringAsync()
         setMnemonic(text)
     }
 
+    const handlePasteTxid = async () => {
+        const text = await Clipboard.getStringAsync()
+        setTxid(text)
+    }
+
     const handleLogout = async () => {
         setShowOpenForm(false)
+        setShowClaimForm(false)
         resetWalletState()
     }
 
@@ -77,6 +91,8 @@ export default function Index() {
             </View>
 
             <View style={styles.container}>
+                {error && <Text style={styles.error}>{error}</Text>}
+
                 {state === "ready" ? (
                     <>
                         <Balance
@@ -114,13 +130,26 @@ export default function Index() {
                                 </View>
                             )
                         )}
+                        {!showClaimForm && (
+                            <Button
+                                title="Claim Bitcoin Transfer"
+                                onPress={() => setShowClaimForm(true)}
+                            />
+                        )}
+                        {showClaimForm && (
+                            <ClaimDepositForm
+                                txid={txid}
+                                onChangeTxid={setTxid}
+                                onPaste={handlePasteTxid}
+                                onClaim={() => claimDeposit(txid.trim())}
+                                onClose={() => setShowClaimForm(false)}
+                                loading={claimLoading}
+                                error={claimError}
+                            />
+                        )}
                     </>
                 ) : (
                     <>
-                        {state === "error" && (
-                            <Text style={styles.error}>{error}</Text>
-                        )}
-                        {loading && <ActivityIndicator size="large" />}
                         {!loading && !showOpenForm && (
                             <WalletOptions
                                 onCreate={createNewWallet}

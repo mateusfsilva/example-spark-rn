@@ -76,8 +76,11 @@ export class SparkSDK {
      * Resets the wallet instance and clears all stored data
      * This method should be called when logging out or when you need to clear the wallet state
      */
-    public reset(): void {
+    public async reset(): Promise<void> {
         logger.info("Resetting wallet instance")
+
+        this._wallet.cleanup()
+        await this._wallet.cleanupConnections()
 
         this._wallet = undefined
         this._mnemonic = undefined
