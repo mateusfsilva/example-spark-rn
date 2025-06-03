@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@azure/core-asynciterator-polyfill": "^1.0.2",
-    "@buildonspark/spark-sdk": "0.1.23",
+    "@buildonspark/spark-sdk": "0.1.29",
     "@expo/vector-icons": "^14.1.0",
     "@react-navigation/native": "^7.1.6",
     "expo": "~53.0.9",
@@ -34,7 +34,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.10.0",
     "react-native-web": "~0.20.0",
-    "text-encoding": "^0.7.0"
+    "text-encoding": "^0.7.0",
+    "expo-clipboard": "~7.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
