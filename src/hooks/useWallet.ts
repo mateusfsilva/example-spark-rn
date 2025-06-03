@@ -33,6 +33,14 @@ export function useWallet() {
      * Indicates if the Spark address should be shown
      */
     const [showSparkAddress, setShowSparkAddress] = useState(false)
+    /**
+     * Bitcoin address for the current wallet (null if not loaded)
+     */
+    const [bitcoinAddress, setBitcoinAddress] = useState<string | null>(null)
+    /**
+     * Indicates if the Bitcoin address should be shown
+     */
+    const [showBitcoinAddress, setShowBitcoinAddress] = useState(false)
 
     const logger = createLogger("useWallet")
 
@@ -45,11 +53,14 @@ export function useWallet() {
         setLoading(true)
         setState("creating")
         setError(null)
+
         try {
             const sdk = SparkSDK.getInstance()
             await sdk.initialize(undefined, "REGTEST")
+
             const balance = await sdk.getBalance()
             setBalance(Number(balance))
+
             setState("ready")
         } catch (e: any) {
             setError(e?.message || "Failed to create wallet")
@@ -69,11 +80,14 @@ export function useWallet() {
         setLoading(true)
         setState("opening")
         setError(null)
+
         try {
             const sdk = SparkSDK.getInstance()
             await sdk.initialize(mnemonic, "REGTEST")
+
             const balance = await sdk.getBalance()
             setBalance(Number(balance))
+
             setState("ready")
         } catch (e: any) {
             setError(e?.message || "Failed to open wallet")
@@ -90,9 +104,11 @@ export function useWallet() {
      */
     const fetchBalance = async () => {
         setLoading(true)
+
         try {
             const sdk = SparkSDK.getInstance()
             const balance = await sdk.getBalance()
+
             setBalance(Number(balance))
         } catch (e: any) {
             setError(e?.message || "Failed to fetch balance")
@@ -108,9 +124,11 @@ export function useWallet() {
      */
     const getSparkAddress = async () => {
         setLoading(true)
+
         try {
             const sdk = SparkSDK.getInstance()
             const address = await sdk.getSparkAddress()
+
             setSparkAddress(address ?? "")
             setShowSparkAddress(true)
         } catch (e: any) {
@@ -129,6 +147,42 @@ export function useWallet() {
     }
 
     /**
+     * Gets a Bitcoin deposit address for the wallet.
+     * If there are unused addresses, shows the first one.
+     * Otherwise, generates a new one.
+     * @returns {Promise<void>}
+     */
+    const getBitcoinAddress = async () => {
+        setLoading(true)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            const unused = await sdk.getUnusedDepositAddresses()
+
+            if (unused && unused.length > 0) {
+                setBitcoinAddress(unused[0])
+            } else {
+                const newAddress = await sdk.getSingleUseDepositAddress()
+                setBitcoinAddress(newAddress ?? "")
+            }
+
+            setShowBitcoinAddress(true)
+        } catch (e: any) {
+            setError(e?.message || "Failed to get Bitcoin address")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    /**
+     * Hides the Bitcoin address and shows the button again.
+     */
+    const hideBitcoinAddress = () => {
+        setShowBitcoinAddress(false)
+        setBitcoinAddress(null)
+    }
+
+    /**
      * Resets the hook state and SparkSDK, clearing all wallet data.
      * @returns {Promise<void>}
      */
@@ -139,6 +193,9 @@ export function useWallet() {
         setError(null)
         setSparkAddress(null)
         setShowSparkAddress(false)
+        setBitcoinAddress(null)
+        setShowBitcoinAddress(false)
+
         const sdk = SparkSDK.getInstance()
         sdk.reset()
     }
@@ -156,6 +213,10 @@ export function useWallet() {
         sparkAddress,
         /** Indicates if the Spark address should be shown */
         showSparkAddress,
+        /** Bitcoin address for the current wallet (null if not loaded) */
+        bitcoinAddress,
+        /** Indicates if the Bitcoin address should be shown */
+        showBitcoinAddress,
         /** Creates a new Bitcoin wallet (without mnemonic) */
         createNewWallet,
         /** Opens an existing wallet using the provided mnemonic */
@@ -166,6 +227,10 @@ export function useWallet() {
         getSparkAddress,
         /** Hides the Spark address and shows the button again */
         hideSparkAddress,
+        /** Gets a Bitcoin deposit address for the wallet */
+        getBitcoinAddress,
+        /** Hides the Bitcoin address and shows the button again */
+        hideBitcoinAddress,
         /** Resets the hook state and SparkSDK */
         resetWalletState,
     }

@@ -21,6 +21,8 @@ import { ShowSparkAddressButton } from "@/components/ShowSparkAddressButton"
 import { SparkAddressLabel } from "@/components/SparkAddressLabel"
 import { styles } from "@/app/styles"
 import { MaterialIcons } from "@expo/vector-icons"
+import { ShowBitcoinAddressButton } from "@/components/ShowBitcoinAddressButton"
+import { BitcoinAddressLabel } from "@/components/BitcoinAddressLabel"
 
 export default function Index() {
     const {
@@ -36,6 +38,10 @@ export default function Index() {
         showSparkAddress,
         getSparkAddress,
         hideSparkAddress,
+        bitcoinAddress,
+        showBitcoinAddress,
+        getBitcoinAddress,
+        hideBitcoinAddress,
     } = useWallet()
 
     const [showOpenForm, setShowOpenForm] = useState(false)
@@ -89,6 +95,21 @@ export default function Index() {
                                     <SparkAddressLabel
                                         address={sparkAddress}
                                         onCopied={hideSparkAddress}
+                                    />
+                                </View>
+                            )
+                        )}
+                        {!showBitcoinAddress ? (
+                            <ShowBitcoinAddressButton
+                                onShow={getBitcoinAddress}
+                                loading={loading}
+                            />
+                        ) : (
+                            bitcoinAddress && (
+                                <View style={styles.sparkAddressWrapper}>
+                                    <BitcoinAddressLabel
+                                        address={bitcoinAddress}
+                                        onCopied={hideBitcoinAddress}
                                     />
                                 </View>
                             )
