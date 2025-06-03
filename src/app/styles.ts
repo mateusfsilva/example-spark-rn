@@ -36,4 +36,9 @@ export const styles = StyleSheet.create({
     error: {
         color: "red",
     },
+    sparkAddressWrapper: {
+        width: "100%",
+        paddingHorizontal: 24,
+        alignItems: "center",
+    },
 })

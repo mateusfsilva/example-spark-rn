@@ -25,6 +25,14 @@ export function useWallet() {
      * Error message, if any
      */
     const [error, setError] = useState<string | null>(null)
+    /**
+     * Spark address for the current wallet (null if not loaded)
+     */
+    const [sparkAddress, setSparkAddress] = useState<string | null>(null)
+    /**
+     * Indicates if the Spark address should be shown
+     */
+    const [showSparkAddress, setShowSparkAddress] = useState(false)
 
     const logger = createLogger("useWallet")
 
@@ -94,6 +102,33 @@ export function useWallet() {
     }
 
     /**
+     * Gets the Spark address for the current wallet.
+     * Updates the sparkAddress and showSparkAddress state.
+     * @returns {Promise<void>}
+     */
+    const getSparkAddress = async () => {
+        setLoading(true)
+        try {
+            const sdk = SparkSDK.getInstance()
+            const address = await sdk.getSparkAddress()
+            setSparkAddress(address ?? "")
+            setShowSparkAddress(true)
+        } catch (e: any) {
+            setError(e?.message || "Failed to get Spark address")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    /**
+     * Hides the Spark address and shows the button again.
+     */
+    const hideSparkAddress = () => {
+        setShowSparkAddress(false)
+        setSparkAddress(null)
+    }
+
+    /**
      * Resets the hook state and SparkSDK, clearing all wallet data.
      * @returns {Promise<void>}
      */
@@ -102,6 +137,8 @@ export function useWallet() {
         setLoading(false)
         setState("idle")
         setError(null)
+        setSparkAddress(null)
+        setShowSparkAddress(false)
         const sdk = SparkSDK.getInstance()
         sdk.reset()
     }
@@ -115,12 +152,20 @@ export function useWallet() {
         state,
         /** Error message, if any */
         error,
+        /** Spark address for the current wallet (null if not loaded) */
+        sparkAddress,
+        /** Indicates if the Spark address should be shown */
+        showSparkAddress,
         /** Creates a new Bitcoin wallet (without mnemonic) */
         createNewWallet,
         /** Opens an existing wallet using the provided mnemonic */
         openWallet,
         /** Fetches the current wallet balance */
         fetchBalance,
+        /** Gets the Spark address for the current wallet */
+        getSparkAddress,
+        /** Hides the Spark address and shows the button again */
+        hideSparkAddress,
         /** Resets the hook state and SparkSDK */
         resetWalletState,
     }

@@ -17,6 +17,8 @@ import { useWallet } from "@/hooks/useWallet"
 import { Balance } from "@/components/Balance"
 import { WalletOptions } from "@/components/WalletOptions"
 import { OpenWalletForm } from "@/components/OpenWalletForm"
+import { ShowSparkAddressButton } from "@/components/ShowSparkAddressButton"
+import { SparkAddressLabel } from "@/components/SparkAddressLabel"
 import { styles } from "@/app/styles"
 import { MaterialIcons } from "@expo/vector-icons"
 
@@ -30,6 +32,10 @@ export default function Index() {
         openWallet,
         fetchBalance,
         resetWalletState,
+        sparkAddress,
+        showSparkAddress,
+        getSparkAddress,
+        hideSparkAddress,
     } = useWallet()
 
     const [showOpenForm, setShowOpenForm] = useState(false)
@@ -45,13 +51,11 @@ export default function Index() {
         resetWalletState()
     }
 
-    const showLogout = state === "ready"
-
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.navbar}>
                 <Text style={styles.navbarTitle}>Spark</Text>
-                {showLogout && (
+                {state === "ready" && (
                     <TouchableOpacity
                         onPress={handleLogout}
                         style={styles.logoutButton}
@@ -68,11 +72,28 @@ export default function Index() {
 
             <View style={styles.container}>
                 {state === "ready" ? (
-                    <Balance
-                        balance={balance}
-                        loading={loading}
-                        onReload={fetchBalance}
-                    />
+                    <>
+                        <Balance
+                            balance={balance}
+                            loading={loading}
+                            onReload={fetchBalance}
+                        />
+                        {!showSparkAddress ? (
+                            <ShowSparkAddressButton
+                                onShow={getSparkAddress}
+                                loading={loading}
+                            />
+                        ) : (
+                            sparkAddress && (
+                                <View style={styles.sparkAddressWrapper}>
+                                    <SparkAddressLabel
+                                        address={sparkAddress}
+                                        onCopied={hideSparkAddress}
+                                    />
+                                </View>
+                            )
+                        )}
+                    </>
                 ) : (
                     <>
                         {state === "error" && (
