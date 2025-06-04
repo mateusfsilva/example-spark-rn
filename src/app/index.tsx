@@ -26,6 +26,9 @@ import { MaterialIcons } from "@expo/vector-icons"
 import { ShowBitcoinAddressButton } from "@/components/ShowBitcoinAddressButton"
 import { BitcoinAddressLabel } from "@/components/BitcoinAddressLabel"
 import { ClaimDepositForm } from "@/components/ClaimDepositForm"
+import { CreateLightningInvoiceForm } from "@/components/CreateLightningInvoiceForm"
+import { LightningInvoiceLabel } from "@/components/LightningInvoiceLabel"
+import { WalletMnemonicLabel } from "@/components/WalletMnemonicLabel"
 
 export default function Index() {
     const {
@@ -48,16 +51,29 @@ export default function Index() {
         claimDeposit,
         claimLoading,
         claimError,
+        lightningInvoice,
+        showLightningInvoice,
+        createLightningInvoice,
+        hideLightningInvoice,
+        lightningLoading,
+        lightningError,
+        showMnemonic,
+        showWalletMnemonic,
+        hideWalletMnemonic,
+        getMnemonic,
     } = useWallet()
 
     const [showOpenForm, setShowOpenForm] = useState(false)
-    const [mnemonic, setMnemonic] = useState("")
+    const [inputMnemonic, setInputMnemonic] = useState("")
     const [txid, setTxid] = useState("")
     const [showClaimForm, setShowClaimForm] = useState(false)
+    const [showLightningForm, setShowLightningForm] = useState(false)
+    const [amountSats, setAmountSats] = useState("")
+    const [memo, setMemo] = useState("")
 
     const handlePaste = async () => {
         const text = await Clipboard.getStringAsync()
-        setMnemonic(text)
+        setInputMnemonic(text)
     }
 
     const handlePasteTxid = async () => {
@@ -68,13 +84,34 @@ export default function Index() {
     const handleLogout = async () => {
         setShowOpenForm(false)
         setShowClaimForm(false)
+        setShowLightningForm(false)
+        setInputMnemonic("")
         resetWalletState()
     }
+
+    // Add this for debugging
+    console.log("showMnemonic state:", showMnemonic)
+    console.log("getMnemonic():", getMnemonic())
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.navbar}>
+                {state === "ready" && (
+                    <TouchableOpacity
+                        onPress={showWalletMnemonic}
+                        style={styles.walletButton}
+                        accessibilityLabel="Show Mnemonic"
+                    >
+                        <MaterialIcons
+                            name="account-balance-wallet"
+                            size={24}
+                            color="#007AFF"
+                        />
+                    </TouchableOpacity>
+                )}
+
                 <Text style={styles.navbarTitle}>Spark</Text>
+
                 {state === "ready" && (
                     <TouchableOpacity
                         onPress={handleLogout}
@@ -147,6 +184,40 @@ export default function Index() {
                                 error={claimError}
                             />
                         )}
+                        {!showLightningInvoice && !showLightningForm && (
+                            <Button
+                                title="Create Lightning Invoice"
+                                onPress={() => setShowLightningForm(true)}
+                            />
+                        )}
+                        {showLightningForm && (
+                            <CreateLightningInvoiceForm
+                                amountSats={amountSats}
+                                memo={memo}
+                                onChangeAmountSats={setAmountSats}
+                                onChangeMemo={setMemo}
+                                onGenerate={() => {
+                                    const amount = parseInt(amountSats) || 0
+                                    createLightningInvoice(amount, memo)
+                                }}
+                                onClose={() => setShowLightningForm(false)}
+                                loading={lightningLoading}
+                                error={lightningError}
+                            />
+                        )}
+                        {showLightningInvoice && lightningInvoice && (
+                            <View style={styles.sparkAddressWrapper}>
+                                <LightningInvoiceLabel
+                                    invoice={lightningInvoice}
+                                    onCopied={() => {
+                                        hideLightningInvoice()
+                                        setShowLightningForm(false)
+                                        setAmountSats("")
+                                        setMemo("")
+                                    }}
+                                />
+                            </View>
+                        )}
                     </>
                 ) : (
                     <>
@@ -158,15 +229,27 @@ export default function Index() {
                         )}
                         {!loading && showOpenForm && (
                             <OpenWalletForm
-                                mnemonic={mnemonic}
-                                onChangeMnemonic={setMnemonic}
+                                mnemonic={inputMnemonic}
+                                onChangeMnemonic={setInputMnemonic}
                                 onPaste={handlePaste}
-                                onOpen={() => openWallet(mnemonic.trim())}
+                                onOpen={() => openWallet(inputMnemonic.trim())}
                             />
                         )}
                     </>
                 )}
             </View>
+
+            {/* Debug the conditional rendering */}
+            {console.log(
+                "Rendering mnemonic overlay:",
+                showMnemonic && getMnemonic()
+            )}
+            {showMnemonic && (
+                <WalletMnemonicLabel
+                    mnemonic={getMnemonic()}
+                    onCopied={hideWalletMnemonic}
+                />
+            )}
         </SafeAreaView>
     )
 }

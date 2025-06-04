@@ -61,4 +61,10 @@ export const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "transparent",
     },
+    walletButton: {
+        position: "absolute",
+        left: 16,
+        padding: 8,
+        zIndex: 10,
+    },
 })

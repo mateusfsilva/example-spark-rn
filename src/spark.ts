@@ -1,9 +1,20 @@
-import { WalletTransfer, WalletLeaf } from "@buildonspark/spark-sdk/types"
+import {
+    WalletTransfer,
+    WalletLeaf,
+    // CreateLightningInvoiceParams,
+    // LightningReceiveRequest,
+} from "@buildonspark/spark-sdk/types"
 import { createLogger } from "@/logger"
 import {
     ReactNativeSparkSigner,
     SparkWallet,
 } from "@buildonspark/spark-sdk/native"
+
+import {
+    CreateLightningInvoiceParams,
+    LightningReceiveRequest,
+    TransferParams,
+} from "@/sparkTypes"
 
 const logger = createLogger("SparkSDK")
 
@@ -79,12 +90,21 @@ export class SparkSDK {
     public async reset(): Promise<void> {
         logger.info("Resetting wallet instance")
 
-        this._wallet.cleanup()
-        await this._wallet.cleanupConnections()
+        try {
+            // Check if wallet is available and cleanup connections
+            if (this._wallet) {
+                await this._wallet.cleanupConnections()
+            }
+        } catch (e) {
+            logger.error("Error cleaning up connections:", e)
+        }
 
+        // Reset instance variables
         this._wallet = undefined
         this._mnemonic = undefined
         this._isInitialized = false
+
+        // Reset the singleton instance
         SparkSDK.instance = null
 
         logger.info("Wallet instance reset complete")
@@ -238,18 +258,15 @@ export class SparkSDK {
     /**
      * Sends a transfer to another Spark user.
      *
-     * @param {Object} params - Parameters for the transfer
+     * @param {TransferParams} params - Parameters for the transfer
      * @param {string} params.receiverSparkAddress - The recipient's Spark address
      * @param {number} params.amountSats - Amount to send in satoshis
-     * @returns {Promise<Transfer>} The completed transfer details
+     * @returns {Promise<WalletTransfer>} The completed transfer details
      */
     async transfer({
         amountSats,
         receiverSparkAddress,
-    }: {
-        amountSats: number
-        receiverSparkAddress: string
-    }): Promise<WalletTransfer> {
+    }: TransferParams): Promise<WalletTransfer> {
         logger.info("Sending transfer...", { amountSats, receiverSparkAddress })
 
         try {
@@ -302,6 +319,81 @@ export class SparkSDK {
             return result
         } catch (error) {
             throw new Error("Unknown error occurred during deposit claim")
+        }
+    }
+
+    /**
+     * Creates a Lightning invoice for receiving payments.
+     *
+     * @param {Object} params - Parameters for the lightning invoice
+     * @param {number} params.amountSats - Amount in satoshis
+     * @param {string} params.memo - Description for the invoice
+     * @param {number} [params.expirySeconds] - Optional expiry time in seconds
+     * @returns {Promise<LightningReceiveRequest>} BOLT11 encoded invoice
+     */
+    async createLightningInvoice({
+        amountSats,
+        memo,
+        expirySeconds = 60 * 60 * 24, // Default to 24 hours
+    }: CreateLightningInvoiceParams): Promise<LightningReceiveRequest> {
+        logger.info("Creating Lightning invoice...", {
+            amountSats,
+            memo,
+            expirySeconds,
+        })
+
+        try {
+            // Check if wallet is available
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const result = await this._wallet.createLightningInvoice({
+                amountSats: amountSats,
+                memo: memo,
+                expirySeconds: expirySeconds,
+            })
+
+            logger.info("Lightning invoice created successfully:", result)
+
+            return result
+        } catch (error) {
+            logger.error("Error creating Lightning invoice:", error)
+
+            throw error
+        }
+    }
+
+    /**
+     * Get a Lightning receive request by ID.
+     *
+     * @param {string} id - The ID of the Lightning receive request
+     * @returns {Promise<LightningReceiveRequest | null>} The Lightning receive request
+     */
+    async getLightningReceiveRequest(
+        id: string
+    ): Promise<LightningReceiveRequest | null> {
+        logger.info("Getting Lightning receive request...", { id })
+
+        try {
+            // Check if wallet is available
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const lightningPaymentStatus =
+                await this._wallet.getLightningReceiveRequest(id)
+
+            logger.info("Lightning receive request found:", {
+                id,
+                lightningPaymentStatus,
+            })
+
+            return lightningPaymentStatus
+        } catch (error) {
+            logger.error("Error getting Lightning receive request:", error)
+
+            throw error
         }
     }
 }

@@ -49,6 +49,28 @@ export function useWallet() {
      * Error message for claim operation, if any
      */
     const [claimError, setClaimError] = useState<string | null>(null)
+    /**
+     * Lightning invoice string (null if not created)
+     */
+    const [lightningInvoice, setLightningInvoice] = useState<string | null>(
+        null
+    )
+    /**
+     * Indicates if the Lightning invoice should be shown
+     */
+    const [showLightningInvoice, setShowLightningInvoice] = useState(false)
+    /**
+     * Indicates if any Lightning invoice creation is in progress
+     */
+    const [lightningLoading, setLightningLoading] = useState(false)
+    /**
+     * Error message for Lightning invoice creation, if any
+     */
+    const [lightningError, setLightningError] = useState<string | null>(null)
+    /**
+     * Indicates if the mnemonic should be shown
+     */
+    const [showMnemonic, setShowMnemonic] = useState(false)
 
     const logger = createLogger("useWallet")
 
@@ -84,14 +106,14 @@ export function useWallet() {
      * @param mnemonic - Wallet mnemonic phrase
      * @returns {Promise<void>}
      */
-    const openWallet = async (mnemonic: string) => {
+    const openWallet = async (mnemonicPhrase: string) => {
         setLoading(true)
         setState("opening")
         setError(null)
 
         try {
             const sdk = SparkSDK.getInstance()
-            await sdk.initialize(mnemonic, "REGTEST")
+            await sdk.initialize(mnemonicPhrase, "REGTEST")
 
             const balance = await sdk.getBalance()
             setBalance(Number(balance))
@@ -215,6 +237,71 @@ export function useWallet() {
     }
 
     /**
+     * Creates a Lightning invoice for receiving payments.
+     * @param amountSats - Amount in satoshis
+     * @param memo - Description for the invoice
+     * @returns {Promise<void>}
+     */
+    const createLightningInvoice = async (amountSats: number, memo: string) => {
+        setLightningLoading(true)
+        setLightningError(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            const result = await sdk.createLightningInvoice({
+                amountSats,
+                memo,
+            })
+
+            // Assuming the result contains the invoice string
+            setLightningInvoice(result.invoice.encodedInvoice)
+            setShowLightningInvoice(true)
+        } catch (e: any) {
+            setLightningError(
+                e?.message || "Failed to create Lightning invoice"
+            )
+        } finally {
+            setLightningLoading(false)
+        }
+    }
+
+    /**
+     * Hides the Lightning invoice and shows the button again.
+     */
+    const hideLightningInvoice = () => {
+        setShowLightningInvoice(false)
+        setLightningInvoice(null)
+    }
+
+    /**
+     * Shows the wallet mnemonic.
+     */
+    const showWalletMnemonic = () => {
+        console.log("showWalletMnemonic called")
+        setShowMnemonic(true)
+    }
+
+    /**
+     * Hides the wallet mnemonic.
+     */
+    const hideWalletMnemonic = () => {
+        setShowMnemonic(false)
+    }
+
+    /**
+     * Gets the current wallet mnemonic from SparkSDK.
+     */
+    const getMnemonic = (): string => {
+        const sdk = SparkSDK.getInstance()
+        console.log("SDK isInitialized:", sdk.isInitialized)
+
+        const mnemonic = sdk.mnemonic
+        console.log("getMnemonic called, mnemonic:", mnemonic)
+
+        return mnemonic
+    }
+
+    /**
      * Resets the hook state and SparkSDK, clearing all wallet data.
      * @returns {Promise<void>}
      */
@@ -227,9 +314,19 @@ export function useWallet() {
         setShowSparkAddress(false)
         setBitcoinAddress(null)
         setShowBitcoinAddress(false)
+        setLightningInvoice(null)
+        setShowLightningInvoice(false)
+        setLightningLoading(false)
+        setLightningError(null)
+        setShowMnemonic(false)
 
-        const sdk = SparkSDK.getInstance()
-        sdk.reset()
+        try {
+            const sdk = SparkSDK.getInstance()
+            await sdk.reset()
+        } catch (e) {
+            // Ignore reset errors, just log them
+            logger.error("Error resetting SDK:", e)
+        }
     }
 
     return {
@@ -269,6 +366,26 @@ export function useWallet() {
         claimLoading,
         /** Error message for claim operation, if any */
         claimError,
+        /** Lightning invoice string (null if not created) */
+        lightningInvoice,
+        /** Indicates if the Lightning invoice should be shown */
+        showLightningInvoice,
+        /** Creates a Lightning invoice for receiving payments */
+        createLightningInvoice,
+        /** Hides the Lightning invoice and shows the button again */
+        hideLightningInvoice,
+        /** Indicates if any Lightning invoice creation is in progress */
+        lightningLoading,
+        /** Error message for Lightning invoice creation, if any */
+        lightningError,
+        /** Indicates if the mnemonic should be shown */
+        showMnemonic,
+        /** Shows the wallet mnemonic */
+        showWalletMnemonic,
+        /** Hides the wallet mnemonic */
+        hideWalletMnemonic,
+        /** Gets the current wallet mnemonic from SparkSDK */
+        getMnemonic,
         /** Resets the hook state and SparkSDK */
         resetWalletState,
     }
