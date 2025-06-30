@@ -1,9 +1,6 @@
 import { StyleSheet } from "react-native"
 
 export const styles = StyleSheet.create({
-    keyboardContainer: {
-        width: "100%",
-    },
     container: {
         width: "100%",
         paddingHorizontal: 24,
@@ -17,10 +14,6 @@ export const styles = StyleSheet.create({
         width: "100%",
         marginBottom: 8,
         fontSize: 16,
-        minHeight: 48,
-    },
-    memoInput: {
-        minHeight: 80,
     },
     spacer: {
         height: 8,

@@ -1,5 +1,13 @@
 import React from "react"
-import { View, TextInput, Button, KeyboardAvoidingView, Platform } from "react-native"
+import {
+    View,
+    TextInput,
+    Button,
+    KeyboardAvoidingView,
+    Platform,
+    TouchableWithoutFeedback,
+    Keyboard,
+} from "react-native"
 import { styles } from "./styles"
 
 type Props = {
@@ -19,29 +27,31 @@ export function OpenWalletForm({
     const isValid = words.length === 12
 
     return (
-        <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-            <View style={styles.formContainer}>
-                <TextInput
-                    placeholder="Enter your 12-word mnemonic"
-                    value={mnemonic}
-                    onChangeText={onChangeMnemonic}
-                    style={styles.input}
-                    multiline
-                    numberOfLines={6}
-                    textAlignVertical="top"
-                />
-                <Button title="Paste mnemonic" onPress={onPaste} />
-            </View>
-            <View style={styles.openButtonContainer}>
-                <Button
-                    title="Open wallet"
-                    onPress={onOpen}
-                    disabled={!isValid}
-                />
-            </View>
-        </KeyboardAvoidingView>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+            >
+                <View style={styles.formContainer}>
+                    <TextInput
+                        placeholder="Enter your 12-word mnemonic"
+                        value={mnemonic}
+                        onChangeText={onChangeMnemonic}
+                        style={styles.input}
+                        multiline
+                        numberOfLines={6}
+                        textAlignVertical="top"
+                    />
+                    <Button title="Paste mnemonic" onPress={onPaste} />
+                </View>
+                <View style={styles.openButtonContainer}>
+                    <Button
+                        title="Open wallet"
+                        onPress={onOpen}
+                        disabled={!isValid}
+                    />
+                </View>
+            </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
     )
 }

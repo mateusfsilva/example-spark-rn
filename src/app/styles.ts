@@ -5,11 +5,20 @@ export const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#fff",
     },
+    flex: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        paddingBottom: 20,
+    },
     container: {
         flex: 1,
         justifyContent: "flex-start",
         alignItems: "center",
         backgroundColor: "#fff",
+        paddingHorizontal: 16,
+        minHeight: "100%",
     },
     navbar: {
         width: "100%",
@@ -35,11 +44,15 @@ export const styles = StyleSheet.create({
     },
     error: {
         color: "red",
+        marginBottom: 16,
+        textAlign: "center",
+        paddingHorizontal: 16,
     },
     sparkAddressWrapper: {
         width: "100%",
         paddingHorizontal: 24,
         alignItems: "center",
+        marginVertical: 8,
     },
     claimFormWrapper: {
         position: "absolute",

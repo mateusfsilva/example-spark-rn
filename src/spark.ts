@@ -1,9 +1,3 @@
-import {
-    WalletTransfer,
-    WalletLeaf,
-    // CreateLightningInvoiceParams,
-    // LightningReceiveRequest,
-} from "@buildonspark/spark-sdk/types"
 import { createLogger } from "@/logger"
 import {
     ReactNativeSparkSigner,
@@ -14,6 +8,11 @@ import {
     CreateLightningInvoiceParams,
     LightningReceiveRequest,
     TransferParams,
+    PayLightningInvoiceParams,
+    WalletTransfer,
+    WalletLeaf,
+    LightningSendRequest,
+    LightningSendFeeEstimateInput,
 } from "@/sparkTypes"
 
 const logger = createLogger("SparkSDK")
@@ -55,6 +54,8 @@ export class SparkSDK {
             return
         }
 
+        const startTime = Date.now()
+
         try {
             logger.info(`Initializing wallet on ${network} network`)
 
@@ -64,6 +65,12 @@ export class SparkSDK {
                 options: {
                     network: network,
                 },
+            })
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️  Wallet successfully initialized", {
+                duration: `${duration}ms`,
+                method: "initialize",
             })
 
             // Store wallet and mnemonic in class properties
@@ -90,11 +97,20 @@ export class SparkSDK {
     public async reset(): Promise<void> {
         logger.info("Resetting wallet instance")
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available and cleanup connections
             if (this._wallet) {
                 await this._wallet.cleanupConnections()
             }
+
+            const duration = Date.now() - startTime
+
+            logger.info("✨ ⏱️  Cleanup connections completed", {
+                duration: `${duration}ms`,
+                method: "cleanupConnections",
+            })
         } catch (e) {
             logger.error("Error cleaning up connections:", e)
         }
@@ -120,6 +136,8 @@ export class SparkSDK {
     async getBalance(): Promise<BigInt> {
         logger.info("Getting wallet balance...")
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -127,7 +145,13 @@ export class SparkSDK {
             }
 
             const balanceResult = await this._wallet?.getBalance()
-            logger.info("Balance result: ", balanceResult)
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️ Balance result: ", {
+                balance: balanceResult?.balance.toString() ?? "0.00",
+                duration: `${duration}ms`,
+                method: "getBalance",
+            })
 
             return balanceResult?.balance ?? BigInt(0)
         } catch (error) {
@@ -156,6 +180,8 @@ export class SparkSDK {
     > {
         logger.info("Getting wallet transfers...")
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -166,7 +192,15 @@ export class SparkSDK {
                 limit,
                 offset
             )
-            logger.info("Transfer result: ", transfersResult)
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️ Wallet transfers retrieved:", {
+                transferCount: transfersResult.transfers?.length ?? 0,
+                limit,
+                offset,
+                duration: `${duration}ms`,
+                method: "getTransfers",
+            })
 
             return transfersResult
         } catch (error) {
@@ -184,6 +218,8 @@ export class SparkSDK {
     async getSparkAddress(): Promise<string | undefined> {
         logger.info("Getting Spark address...")
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -191,7 +227,13 @@ export class SparkSDK {
             }
 
             const address = await this._wallet?.getSparkAddress()
-            logger.info("Spark address retrieved:", address)
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️  Spark address retrieved:", {
+                address,
+                duration: `${duration}ms`,
+                method: "getSparkAddress",
+            })
 
             return address
         } catch (error) {
@@ -213,6 +255,8 @@ export class SparkSDK {
     async getSingleUseDepositAddress(): Promise<string | undefined> {
         logger.info("Generating single-use deposit address...")
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -220,7 +264,13 @@ export class SparkSDK {
             }
 
             const address = await this._wallet?.getSingleUseDepositAddress()
-            logger.info("Single-use deposit address generated:", address)
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️  Single-use deposit address generated:", {
+                address,
+                duration: `${duration}ms`,
+                method: "getSingleUseDepositAddress",
+            })
 
             return address
         } catch (error) {
@@ -238,6 +288,8 @@ export class SparkSDK {
     async getUnusedDepositAddresses(): Promise<string[]> {
         logger.info("Getting unused deposit addresses...")
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -245,7 +297,14 @@ export class SparkSDK {
             }
 
             const addresses = await this._wallet?.getUnusedDepositAddresses()
-            logger.info("Unused deposit addresses retrieved:", addresses)
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️  Unused deposit addresses retrieved:", {
+                addressCount: addresses?.length || 0,
+                addresses,
+                duration: `${duration}ms`,
+                method: "getUnusedDepositAddresses",
+            })
 
             return addresses ? addresses.map((address) => `${address}`) : []
         } catch (error) {
@@ -269,6 +328,8 @@ export class SparkSDK {
     }: TransferParams): Promise<WalletTransfer> {
         logger.info("Sending transfer...", { amountSats, receiverSparkAddress })
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -280,7 +341,15 @@ export class SparkSDK {
                 receiverSparkAddress: receiverSparkAddress,
             })
 
-            logger.info("Transfer successful, raw result:", result)
+            const duration = Date.now() - startTime
+
+            logger.info("✨ ⏱️  Transfer successful", {
+                result,
+                amountSats,
+                receiverSparkAddress,
+                duration: `${duration}ms`,
+                method: "transfer",
+            })
 
             return result
         } catch (error) {
@@ -306,6 +375,8 @@ export class SparkSDK {
     async claimDeposit(txid: string): Promise<WalletLeaf[]> {
         logger.info("Claiming deposit...", { txid })
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -314,7 +385,14 @@ export class SparkSDK {
 
             const result = await this._wallet.claimDeposit(txid)
 
-            logger.info("Deposit claim result:", { txid, result })
+            const duration = Date.now() - startTime
+
+            logger.info("✨ ⏱️  Deposit claim result:", {
+                result,
+                txid,
+                duration: `${duration}ms`,
+                method: "claimDeposit",
+            })
 
             return result
         } catch (error) {
@@ -325,22 +403,33 @@ export class SparkSDK {
     /**
      * Creates a Lightning invoice for receiving payments.
      *
-     * @param {Object} params - Parameters for the lightning invoice
+     * @param {CreateLightningInvoiceParams} params - Invoice parameters
      * @param {number} params.amountSats - Amount in satoshis
-     * @param {string} params.memo - Description for the invoice
+     * @param {string} [params.memo] - Description for the invoice
      * @param {number} [params.expirySeconds] - Optional expiry time in seconds
-     * @returns {Promise<LightningReceiveRequest>} BOLT11 encoded invoice
+     * @param {boolean} [params.includeSparkAddress] - Include Spark address in fallback
+     * @param {string} [params.receiverIdentityPubkey] - Receiver's identity public key
+     * @param {string} [params.descriptionHash] - Hash of longer description
+     * @returns {Promise<LightningReceiveRequest>} The created Lightning receive request
      */
     async createLightningInvoice({
         amountSats,
         memo,
         expirySeconds = 60 * 60 * 24, // Default to 24 hours
+        includeSparkAddress = false,
+        receiverIdentityPubkey,
+        descriptionHash,
     }: CreateLightningInvoiceParams): Promise<LightningReceiveRequest> {
         logger.info("Creating Lightning invoice...", {
             amountSats,
             memo,
             expirySeconds,
+            includeSparkAddress,
+            receiverIdentityPubkey,
+            descriptionHash,
         })
+
+        const startTime = Date.now()
 
         try {
             // Check if wallet is available
@@ -354,7 +443,17 @@ export class SparkSDK {
                 expirySeconds: expirySeconds,
             })
 
-            logger.info("Lightning invoice created successfully:", result)
+            const duration = Date.now() - startTime
+
+            logger.info("✨ ⏱️  Lightning invoice created:", {
+                invoiceId: result.id,
+                amountSats,
+                memo,
+                expirySeconds,
+                includeSparkAddress,
+                duration: `${duration}ms`,
+                method: "createLightningInvoice",
+            })
 
             return result
         } catch (error) {
@@ -375,6 +474,8 @@ export class SparkSDK {
     ): Promise<LightningReceiveRequest | null> {
         logger.info("Getting Lightning receive request...", { id })
 
+        const startTime = Date.now()
+
         try {
             // Check if wallet is available
             if (!this._wallet) {
@@ -384,14 +485,112 @@ export class SparkSDK {
             const lightningPaymentStatus =
                 await this._wallet.getLightningReceiveRequest(id)
 
-            logger.info("Lightning receive request found:", {
+            const duration = Date.now() - startTime
+
+            logger.info("✨ ⏱️  Lightning receive request found:", {
                 id,
                 lightningPaymentStatus,
+                duration: `${duration}ms`,
+                method: "getLightningReceiveRequest",
             })
 
             return lightningPaymentStatus
         } catch (error) {
             logger.error("Error getting Lightning receive request:", error)
+
+            throw error
+        }
+    }
+
+    /**
+     * Pays a Lightning invoice.
+     *
+     * @param {PayLightningInvoiceParams} params - Payment parameters
+     * @param {string} params.invoice - The BOLT11-encoded Lightning invoice to pay
+     * @param {number} params.maxFeeSats - Maximum fee willing to pay
+     * @param {boolean} [params.preferSpark] - Prefer Spark transfer over Lightning
+     * @returns {Promise<LightningSendRequest | WalletTransfer>} Payment result
+     */
+    async payLightningInvoice({
+        invoice,
+        maxFeeSats,
+        preferSpark,
+    }: PayLightningInvoiceParams): Promise<
+        LightningSendRequest | WalletTransfer
+    > {
+        logger.info("Paying Lightning invoice...", {
+            invoice,
+            maxFeeSats,
+            preferSpark,
+        })
+
+        const startTime = Date.now()
+
+        try {
+            // Check if wallet is available
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const result = await this._wallet.payLightningInvoice({
+                invoice: invoice,
+                maxFeeSats: maxFeeSats,
+                // preferSpark: preferSpark,
+            })
+
+            const duration = Date.now() - startTime
+
+            logger.info("✨ ⏱️  Lightning invoice paid successfully:", {
+                ...result,
+                duration: `${duration}ms`,
+                method: "payLightningInvoice",
+            })
+
+            return result
+        } catch (error) {
+            logger.error("Error paying Lightning invoice:", error)
+
+            throw error
+        }
+    }
+
+    /**
+     * Gets fee estimate for sending Lightning payments.
+     *
+     * @param {LightningSendFeeEstimateInput} params - Fee estimation parameters
+     * @param {string} params.encodedInvoice - The Lightning invoice to estimate fees for
+     * @returns {Promise<number>} Fee estimate in satoshis
+     */
+    async getLightningSendFeeEstimate({
+        encodedInvoice,
+    }: LightningSendFeeEstimateInput): Promise<number> {
+        logger.info("Getting Lightning send fee estimate...", {
+            encodedInvoice,
+        })
+
+        const startTime = Date.now()
+
+        try {
+            // Check if wallet is available
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const feeEstimate = await this._wallet.getLightningSendFeeEstimate({
+                encodedInvoice: encodedInvoice,
+            })
+
+            const duration = Date.now() - startTime
+
+            logger.info("✨ ⏱️  Lightning send fee estimate retrieved:", {
+                feeEstimate,
+                duration: `${duration}ms`,
+                method: "getLightningSendFeeEstimate",
+            })
+
+            return feeEstimate
+        } catch (error) {
+            logger.error("Error getting Lightning send fee estimate:", error)
 
             throw error
         }

@@ -37,7 +37,7 @@ const RESET_COLOR = "\x1b[0m"
  * Global flag to enable/disable logging
  * Should be set to true only in development/debug environments
  */
-let isDebugEnabled = __DEV__
+let isDebugEnabled = true // __DEV__
 
 /**
  * Sets whether debug logging is enabled

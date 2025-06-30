@@ -1,9 +1,6 @@
 import { StyleSheet } from "react-native"
 
 export const styles = StyleSheet.create({
-    keyboardContainer: {
-        width: "100%",
-    },
     container: {
         width: "100%",
         paddingHorizontal: 24,
@@ -17,16 +14,23 @@ export const styles = StyleSheet.create({
         width: "100%",
         marginBottom: 8,
         fontSize: 16,
-        minHeight: 48,
-    },
-    memoInput: {
         minHeight: 80,
     },
-    spacer: {
-        height: 8,
+    buttonContainer: {
+        marginBottom: 8,
     },
-    loading: {
-        marginTop: 8,
+    feeEstimate: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#007AFF",
+        textAlign: "center",
+        marginVertical: 8,
+        padding: 8,
+        backgroundColor: "#f0f8ff",
+        borderRadius: 8,
+    },
+    actionButtons: {
+        marginTop: 16,
     },
     error: {
         color: "red",

@@ -2,6 +2,9 @@ export type CreateLightningInvoiceParams = {
     amountSats: number
     memo?: string
     expirySeconds?: number
+    includeSparkAddress?: boolean,
+    receiverIdentityPubkey?: string,
+    descriptionHash?: string,
 }
 
 export declare enum LightningReceiveRequestStatus {
@@ -137,4 +140,139 @@ export interface LightningReceiveRequest {
 export type TransferParams = {
     amountSats: number
     receiverSparkAddress: string
+}
+
+export type PayLightningInvoiceParams = {
+    invoice: string
+    maxFeeSats: number
+    preferSpark: boolean
+}
+
+export interface LightningSendRequest {
+    /**
+     * The unique identifier of this entity across all Lightspark systems. Should be treated as an opaque
+     * string.
+     **/
+    id: string
+    /** The date and time when the entity was first created. **/
+    createdAt: string
+    /** The date and time when the entity was last updated. **/
+    updatedAt: string
+    /** The network the lightning send request is on. **/
+    network: BitcoinNetwork
+    /** The lightning invoice user requested to pay. **/
+    encodedInvoice: string
+    /** The fee charged for paying the lightning invoice. **/
+    fee: CurrencyAmount
+    /** The idempotency key of the request. **/
+    idempotencyKey: string
+    /** The status of the request. **/
+    status: LightningSendRequestStatus
+    /** The typename of the object **/
+    typename: string
+    /** The leaves transfer after lightning payment was sent. **/
+    transfer?: Transfer | undefined
+    /** The preimage of the payment. **/
+    paymentPreimage?: string | undefined
+}
+
+export declare enum LightningSendRequestStatus {
+    /**
+     * This is an enum value that represents values that could be added in the future.
+     * Clients should support unknown values as more of them could be added without notice.
+     */
+    FUTURE_VALUE = "FUTURE_VALUE",
+    CREATED = "CREATED",
+    REQUEST_VALIDATED = "REQUEST_VALIDATED",
+    LIGHTNING_PAYMENT_INITIATED = "LIGHTNING_PAYMENT_INITIATED",
+    LIGHTNING_PAYMENT_FAILED = "LIGHTNING_PAYMENT_FAILED",
+    LIGHTNING_PAYMENT_SUCCEEDED = "LIGHTNING_PAYMENT_SUCCEEDED",
+    PREIMAGE_PROVIDED = "PREIMAGE_PROVIDED",
+    TRANSFER_COMPLETED = "TRANSFER_COMPLETED",
+}
+
+export interface WalletTransfer {
+    id: string
+    senderIdentityPublicKey: string
+    receiverIdentityPublicKey: string
+    status: keyof typeof TransferStatus
+    totalValue: number
+    expiryTime: Date | undefined
+    leaves: WalletTransferLeaf[]
+    createdTime: Date | undefined
+    updatedTime: Date | undefined
+    type: keyof typeof TransferType
+    transferDirection: keyof typeof TransferDirection
+}
+
+export declare enum TransferStatus {
+    TRANSFER_STATUS_SENDER_INITIATED = 0,
+    TRANSFER_STATUS_SENDER_KEY_TWEAK_PENDING = 1,
+    TRANSFER_STATUS_SENDER_KEY_TWEAKED = 2,
+    TRANSFER_STATUS_RECEIVER_KEY_TWEAKED = 3,
+    TRANSFER_STATUSR_RECEIVER_REFUND_SIGNED = 4,
+    TRANSFER_STATUS_COMPLETED = 5,
+    TRANSFER_STATUS_EXPIRED = 6,
+    TRANSFER_STATUS_RETURNED = 7,
+    TRANSFER_STATUS_SENDER_INITIATED_COORDINATOR = 8,
+    TRANSFER_STATUS_RECEIVER_KEY_TWEAK_LOCKED = 9,
+    TRANSFER_STATUS_RECEIVER_KEY_TWEAK_APPLIED = 10,
+    UNRECOGNIZED = -1,
+}
+
+export interface WalletTransferLeaf {
+    leaf: WalletLeaf | undefined
+    secretCipher: string
+    signature: string
+    intermediateRefundTx: string
+}
+
+export declare enum TransferType {
+    PREIMAGE_SWAP = 0,
+    COOPERATIVE_EXIT = 1,
+    TRANSFER = 2,
+    UTXO_SWAP = 3,
+    SWAP = 30,
+    COUNTER_SWAP = 40,
+    UNRECOGNIZED = -1,
+}
+
+export declare enum TransferDirection {
+    INCOMING = "INCOMING",
+    OUTGOING = "OUTGOING",
+}
+
+export interface WalletLeaf {
+    id: string
+    treeId: string
+    value: number
+    parentNodeId?: string | undefined
+    nodeTx: string
+    refundTx: string
+    vout: number
+    verifyingPublicKey: string
+    ownerIdentityPublicKey: string
+    signingKeyshare: SigningKeyshare | undefined
+    status: string
+    network: keyof typeof Network
+}
+
+export interface SigningKeyshare {
+    /** The identifiers of the owners of the keyshare. */
+    ownerIdentifiers: string[]
+    /** The threshold of the keyshare. */
+    threshold: number
+}
+
+export declare enum Network {
+    UNSPECIFIED = 0,
+    MAINNET = 1,
+    REGTEST = 2,
+    TESTNET = 3,
+    SIGNET = 4,
+    UNRECOGNIZED = -1,
+}
+
+export interface LightningSendFeeEstimateInput {
+    encodedInvoice: string;
 }

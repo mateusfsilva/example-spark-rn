@@ -71,6 +71,32 @@ export function useWallet() {
      * Indicates if the mnemonic should be shown
      */
     const [showMnemonic, setShowMnemonic] = useState(false)
+    /**
+     * Indicates if any transfer operation is in progress
+     */
+    const [transferLoading, setTransferLoading] = useState(false)
+    /**
+     * Error message for transfer operation, if any
+     */
+    const [transferError, setTransferError] = useState<string | null>(null)
+    /**
+     * Indicates if any Lightning invoice payment is in progress
+     */
+    const [payInvoiceLoading, setPayInvoiceLoading] = useState(false)
+    /**
+     * Error message for Lightning invoice payment, if any
+     */
+    const [payInvoiceError, setPayInvoiceError] = useState<string | null>(null)
+    /**
+     * Lightning fee estimate in satoshis (null if not calculated)
+     */
+    const [lightningFeeEstimate, setLightningFeeEstimate] = useState<
+        number | null
+    >(null)
+    /**
+     * Indicates if fee estimation is in progress
+     */
+    const [estimatingFee, setEstimatingFee] = useState(false)
 
     const logger = createLogger("useWallet")
 
@@ -86,7 +112,7 @@ export function useWallet() {
 
         try {
             const sdk = SparkSDK.getInstance()
-            await sdk.initialize(undefined, "REGTEST")
+            await sdk.initialize(undefined, "MAINNET")
 
             const balance = await sdk.getBalance()
             setBalance(Number(balance))
@@ -113,7 +139,7 @@ export function useWallet() {
 
         try {
             const sdk = SparkSDK.getInstance()
-            await sdk.initialize(mnemonicPhrase, "REGTEST")
+            await sdk.initialize(mnemonicPhrase, "MAINNET")
 
             const balance = await sdk.getBalance()
             setBalance(Number(balance))
@@ -293,12 +319,112 @@ export function useWallet() {
      */
     const getMnemonic = (): string => {
         const sdk = SparkSDK.getInstance()
-        console.log("SDK isInitialized:", sdk.isInitialized)
-
         const mnemonic = sdk.mnemonic
-        console.log("getMnemonic called, mnemonic:", mnemonic)
 
         return mnemonic
+    }
+
+    /**
+     * Transfers funds to another Spark address.
+     * @param receiverSparkAddress - The recipient's Spark address
+     * @param amountSats - Amount to send in satoshis
+     * @returns {Promise<void>}
+     */
+    const transfer = async (
+        receiverSparkAddress: string,
+        amountSats: number
+    ): Promise<void> => {
+        setTransferLoading(true)
+        setTransferError(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            await sdk.transfer({
+                receiverSparkAddress,
+                amountSats,
+            })
+
+            // Refresh balance after transfer
+            const balance = await sdk.getBalance()
+            setBalance(Number(balance))
+        } catch (e: any) {
+            const errorMessage = e?.message || "Failed to send transfer"
+            setTransferError(errorMessage)
+            // Re-throw the error so the caller knows it failed
+            throw new Error(errorMessage)
+        } finally {
+            setTransferLoading(false)
+        }
+    }
+
+    /**
+     * Estimates the fee for paying a Lightning invoice.
+     * @param invoice - The Lightning invoice to estimate fee for
+     * @returns {Promise<void>}
+     */
+    const estimateLightningFee = async (invoice: string): Promise<void> => {
+        setEstimatingFee(true)
+        setPayInvoiceError(null)
+        setLightningFeeEstimate(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            const feeEstimate = await sdk.getLightningSendFeeEstimate({
+                encodedInvoice: invoice,
+            })
+            setLightningFeeEstimate(feeEstimate)
+        } catch (e: any) {
+            const errorMessage = e?.message || "Failed to estimate fee"
+            setPayInvoiceError(errorMessage)
+        } finally {
+            setEstimatingFee(false)
+        }
+    }
+
+    /**
+     * Pays a Lightning invoice.
+     * @param invoice - The Lightning invoice to pay
+     * @param maxFeeSats - Maximum fee willing to pay in satoshis
+     * @returns {Promise<void>}
+     */
+    const payLightningInvoice = async (
+        invoice: string,
+        maxFeeSats: number
+    ): Promise<void> => {
+        setPayInvoiceLoading(true)
+        setPayInvoiceError(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            await sdk.payLightningInvoice({
+                invoice,
+                maxFeeSats,
+                preferSpark: false,
+            })
+
+            // Refresh balance after payment
+            const balance = await sdk.getBalance()
+            setBalance(Number(balance))
+
+            // Reset fee estimate after successful payment
+            setLightningFeeEstimate(null)
+        } catch (e: any) {
+            const errorMessage = e?.message || "Failed to pay Lightning invoice"
+            setPayInvoiceError(errorMessage)
+            // Re-throw the error so the caller knows it failed
+            throw new Error(errorMessage)
+        } finally {
+            setPayInvoiceLoading(false)
+        }
+    }
+
+    /**
+     * Clears the Lightning fee estimate.
+     * Useful when closing the pay invoice form or starting fresh.
+     */
+    const clearLightningFeeEstimate = () => {
+        setLightningFeeEstimate(null)
+        setPayInvoiceError(null)
     }
 
     /**
@@ -319,6 +445,12 @@ export function useWallet() {
         setLightningLoading(false)
         setLightningError(null)
         setShowMnemonic(false)
+        setTransferLoading(false)
+        setTransferError(null)
+        setPayInvoiceLoading(false)
+        setPayInvoiceError(null)
+        setLightningFeeEstimate(null)
+        setEstimatingFee(false)
 
         try {
             const sdk = SparkSDK.getInstance()
@@ -386,7 +518,27 @@ export function useWallet() {
         hideWalletMnemonic,
         /** Gets the current wallet mnemonic from SparkSDK */
         getMnemonic,
+        /** Transfers funds to another Spark address */
+        transfer,
+        /** Indicates if any transfer operation is in progress */
+        transferLoading,
+        /** Error message for transfer operation, if any */
+        transferError,
         /** Resets the hook state and SparkSDK */
         resetWalletState,
+        /** Indicates if any Lightning invoice payment is in progress */
+        payInvoiceLoading,
+        /** Error message for Lightning invoice payment, if any */
+        payInvoiceError,
+        /** Lightning fee estimate in satoshis (null if not calculated) */
+        lightningFeeEstimate,
+        /** Indicates if fee estimation is in progress */
+        estimatingFee,
+        /** Estimates the fee for paying a Lightning invoice */
+        estimateLightningFee,
+        /** Pays a Lightning invoice */
+        payLightningInvoice,
+        /** Clears the Lightning fee estimate */
+        clearLightningFeeEstimate,
     }
 }

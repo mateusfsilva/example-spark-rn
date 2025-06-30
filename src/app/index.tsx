@@ -12,6 +12,9 @@ import {
     TouchableOpacity,
     Button,
     TextInput,
+    KeyboardAvoidingView,
+    ScrollView,
+    Platform,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import * as Clipboard from "expo-clipboard"
@@ -29,6 +32,8 @@ import { ClaimDepositForm } from "@/components/ClaimDepositForm"
 import { CreateLightningInvoiceForm } from "@/components/CreateLightningInvoiceForm"
 import { LightningInvoiceLabel } from "@/components/LightningInvoiceLabel"
 import { WalletMnemonicLabel } from "@/components/WalletMnemonicLabel"
+import { TransferForm } from "@/components/TransferForm"
+import { PayLightningInvoiceForm } from "@/components/PayLightningInvoiceForm"
 
 export default function Index() {
     const {
@@ -61,6 +66,16 @@ export default function Index() {
         showWalletMnemonic,
         hideWalletMnemonic,
         getMnemonic,
+        transfer,
+        transferLoading,
+        transferError,
+        payInvoiceLoading,
+        payInvoiceError,
+        lightningFeeEstimate,
+        estimatingFee,
+        estimateLightningFee,
+        payLightningInvoice,
+        clearLightningFeeEstimate,
     } = useWallet()
 
     const [showOpenForm, setShowOpenForm] = useState(false)
@@ -70,6 +85,11 @@ export default function Index() {
     const [showLightningForm, setShowLightningForm] = useState(false)
     const [amountSats, setAmountSats] = useState("")
     const [memo, setMemo] = useState("")
+    const [showTransferForm, setShowTransferForm] = useState(false)
+    const [receiverAddress, setReceiverAddress] = useState("")
+    const [transferAmountSats, setTransferAmountSats] = useState("")
+    const [showPayInvoiceForm, setShowPayInvoiceForm] = useState(false)
+    const [lightningInvoiceInput, setLightningInvoiceInput] = useState("")
 
     const handlePaste = async () => {
         const text = await Clipboard.getStringAsync()
@@ -81,17 +101,28 @@ export default function Index() {
         setTxid(text)
     }
 
+    const handlePasteAddress = async () => {
+        const text = await Clipboard.getStringAsync()
+        setReceiverAddress(text)
+    }
+
+    const handlePasteInvoice = async () => {
+        const text = await Clipboard.getStringAsync()
+        setLightningInvoiceInput(text)
+    }
+
     const handleLogout = async () => {
         setShowOpenForm(false)
         setShowClaimForm(false)
         setShowLightningForm(false)
+        setShowTransferForm(false)
+        setShowPayInvoiceForm(false)
         setInputMnemonic("")
-        resetWalletState()
+        setReceiverAddress("")
+        setTransferAmountSats("")
+        setLightningInvoiceInput("")
+        await resetWalletState()
     }
-
-    // Add this for debugging
-    console.log("showMnemonic state:", showMnemonic)
-    console.log("getMnemonic():", getMnemonic())
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -127,123 +158,242 @@ export default function Index() {
                 )}
             </View>
 
-            <View style={styles.container}>
-                {error && <Text style={styles.error}>{error}</Text>}
+            <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.container}>
+                        {error && <Text style={styles.error}>{error}</Text>}
 
-                {state === "ready" ? (
-                    <>
-                        <Balance
-                            balance={balance}
-                            loading={loading}
-                            onReload={fetchBalance}
-                        />
-                        {!showSparkAddress ? (
-                            <ShowSparkAddressButton
-                                onShow={getSparkAddress}
-                                loading={loading}
-                            />
-                        ) : (
-                            sparkAddress && (
-                                <View style={styles.sparkAddressWrapper}>
-                                    <SparkAddressLabel
-                                        address={sparkAddress}
-                                        onCopied={hideSparkAddress}
-                                    />
-                                </View>
-                            )
-                        )}
-                        {!showBitcoinAddress ? (
-                            <ShowBitcoinAddressButton
-                                onShow={getBitcoinAddress}
-                                loading={loading}
-                            />
-                        ) : (
-                            bitcoinAddress && (
-                                <View style={styles.sparkAddressWrapper}>
-                                    <BitcoinAddressLabel
-                                        address={bitcoinAddress}
-                                        onCopied={hideBitcoinAddress}
-                                    />
-                                </View>
-                            )
-                        )}
-                        {!showClaimForm && (
-                            <Button
-                                title="Claim Bitcoin Transfer"
-                                onPress={() => setShowClaimForm(true)}
-                            />
-                        )}
-                        {showClaimForm && (
-                            <ClaimDepositForm
-                                txid={txid}
-                                onChangeTxid={setTxid}
-                                onPaste={handlePasteTxid}
-                                onClaim={() => claimDeposit(txid.trim())}
-                                onClose={() => setShowClaimForm(false)}
-                                loading={claimLoading}
-                                error={claimError}
-                            />
-                        )}
-                        {!showLightningInvoice && !showLightningForm && (
-                            <Button
-                                title="Create Lightning Invoice"
-                                onPress={() => setShowLightningForm(true)}
-                            />
-                        )}
-                        {showLightningForm && (
-                            <CreateLightningInvoiceForm
-                                amountSats={amountSats}
-                                memo={memo}
-                                onChangeAmountSats={setAmountSats}
-                                onChangeMemo={setMemo}
-                                onGenerate={() => {
-                                    const amount = parseInt(amountSats) || 0
-                                    createLightningInvoice(amount, memo)
-                                }}
-                                onClose={() => setShowLightningForm(false)}
-                                loading={lightningLoading}
-                                error={lightningError}
-                            />
-                        )}
-                        {showLightningInvoice && lightningInvoice && (
-                            <View style={styles.sparkAddressWrapper}>
-                                <LightningInvoiceLabel
-                                    invoice={lightningInvoice}
-                                    onCopied={() => {
-                                        hideLightningInvoice()
-                                        setShowLightningForm(false)
-                                        setAmountSats("")
-                                        setMemo("")
-                                    }}
+                        {state === "ready" ? (
+                            <>
+                                <Balance
+                                    balance={balance}
+                                    loading={loading}
+                                    onReload={fetchBalance}
                                 />
-                            </View>
+                                {!showSparkAddress ? (
+                                    <ShowSparkAddressButton
+                                        onShow={getSparkAddress}
+                                        loading={loading}
+                                    />
+                                ) : (
+                                    sparkAddress && (
+                                        <View
+                                            style={styles.sparkAddressWrapper}
+                                        >
+                                            <SparkAddressLabel
+                                                address={sparkAddress}
+                                                onCopied={hideSparkAddress}
+                                            />
+                                        </View>
+                                    )
+                                )}
+                                {!showBitcoinAddress ? (
+                                    <ShowBitcoinAddressButton
+                                        onShow={getBitcoinAddress}
+                                        loading={loading}
+                                    />
+                                ) : (
+                                    bitcoinAddress && (
+                                        <View
+                                            style={styles.sparkAddressWrapper}
+                                        >
+                                            <BitcoinAddressLabel
+                                                address={bitcoinAddress}
+                                                onCopied={hideBitcoinAddress}
+                                            />
+                                        </View>
+                                    )
+                                )}
+                                {!showClaimForm && (
+                                    <Button
+                                        title="Claim Bitcoin Transfer"
+                                        onPress={() => setShowClaimForm(true)}
+                                    />
+                                )}
+                                {showClaimForm && (
+                                    <ClaimDepositForm
+                                        txid={txid}
+                                        onChangeTxid={setTxid}
+                                        onPaste={handlePasteTxid}
+                                        onClaim={() =>
+                                            claimDeposit(txid.trim())
+                                        }
+                                        onClose={() => setShowClaimForm(false)}
+                                        loading={claimLoading}
+                                        error={claimError}
+                                    />
+                                )}
+                                {!showLightningInvoice &&
+                                    !showLightningForm && (
+                                        <Button
+                                            title="Create Lightning Invoice"
+                                            onPress={() =>
+                                                setShowLightningForm(true)
+                                            }
+                                        />
+                                    )}
+                                {showLightningForm && (
+                                    <CreateLightningInvoiceForm
+                                        amountSats={amountSats}
+                                        memo={memo}
+                                        onChangeAmountSats={setAmountSats}
+                                        onChangeMemo={setMemo}
+                                        onGenerate={() => {
+                                            const amount =
+                                                parseInt(amountSats) || 0
+                                            createLightningInvoice(amount, memo)
+                                        }}
+                                        onClose={() =>
+                                            setShowLightningForm(false)
+                                        }
+                                        loading={lightningLoading}
+                                        error={lightningError}
+                                    />
+                                )}
+                                {showLightningInvoice && lightningInvoice && (
+                                    <View style={styles.sparkAddressWrapper}>
+                                        <LightningInvoiceLabel
+                                            invoice={lightningInvoice}
+                                            onCopied={() => {
+                                                hideLightningInvoice()
+                                                setShowLightningForm(false)
+                                                setAmountSats("")
+                                                setMemo("")
+                                            }}
+                                        />
+                                    </View>
+                                )}
+                                {!showTransferForm && (
+                                    <Button
+                                        title="Send Transfer"
+                                        onPress={() =>
+                                            setShowTransferForm(true)
+                                        }
+                                    />
+                                )}
+                                {showTransferForm && (
+                                    <TransferForm
+                                        receiverAddress={receiverAddress}
+                                        amountSats={transferAmountSats}
+                                        onChangeReceiverAddress={
+                                            setReceiverAddress
+                                        }
+                                        onChangeAmountSats={
+                                            setTransferAmountSats
+                                        }
+                                        onPasteAddress={handlePasteAddress}
+                                        onTransfer={async () => {
+                                            const amount =
+                                                parseInt(transferAmountSats) ||
+                                                0
+                                            try {
+                                                await transfer(
+                                                    receiverAddress.trim(),
+                                                    amount
+                                                )
+                                                // Only close form if transfer was successful (no error thrown)
+                                                setShowTransferForm(false)
+                                                setReceiverAddress("")
+                                                setTransferAmountSats("")
+                                            } catch (error) {
+                                                // Error is already handled in the hook, just don't close the form
+                                                console.log(
+                                                    "Transfer failed, keeping form open"
+                                                )
+                                            }
+                                        }}
+                                        onClose={() => {
+                                            setShowTransferForm(false)
+                                            setReceiverAddress("")
+                                            setTransferAmountSats("")
+                                        }}
+                                        loading={transferLoading}
+                                        error={transferError}
+                                    />
+                                )}
+                                {!showPayInvoiceForm && (
+                                    <Button
+                                        title="Pay Invoice"
+                                        onPress={() =>
+                                            setShowPayInvoiceForm(true)
+                                        }
+                                    />
+                                )}
+                                {showPayInvoiceForm && (
+                                    <PayLightningInvoiceForm
+                                        invoice={lightningInvoiceInput}
+                                        feeEstimate={lightningFeeEstimate}
+                                        onChangeInvoice={
+                                            setLightningInvoiceInput
+                                        }
+                                        onPasteInvoice={handlePasteInvoice}
+                                        onEstimateFee={() =>
+                                            estimateLightningFee(
+                                                lightningInvoiceInput.trim()
+                                            )
+                                        }
+                                        onPayInvoice={async () => {
+                                            if (lightningFeeEstimate !== null) {
+                                                try {
+                                                    await payLightningInvoice(
+                                                        lightningInvoiceInput.trim(),
+                                                        lightningFeeEstimate +
+                                                            100 // Add some buffer to the fee
+                                                    )
+                                                    // Only close form if payment was successful
+                                                    setShowPayInvoiceForm(false)
+                                                    setLightningInvoiceInput("")
+                                                } catch (error) {
+                                                    // Error is already handled in the hook, just don't close the form
+                                                    console.log(
+                                                        "Payment failed, keeping form open"
+                                                    )
+                                                }
+                                            }
+                                        }}
+                                        onClose={() => {
+                                            setShowPayInvoiceForm(false)
+                                            setLightningInvoiceInput("")
+                                            clearLightningFeeEstimate()
+                                        }}
+                                        loading={payInvoiceLoading}
+                                        estimatingFee={estimatingFee}
+                                        error={payInvoiceError}
+                                    />
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                {!loading && !showOpenForm && (
+                                    <WalletOptions
+                                        onCreate={createNewWallet}
+                                        onOpen={() => setShowOpenForm(true)}
+                                    />
+                                )}
+                                {!loading && showOpenForm && (
+                                    <OpenWalletForm
+                                        mnemonic={inputMnemonic}
+                                        onChangeMnemonic={setInputMnemonic}
+                                        onPaste={handlePaste}
+                                        onOpen={() =>
+                                            openWallet(inputMnemonic.trim())
+                                        }
+                                    />
+                                )}
+                            </>
                         )}
-                    </>
-                ) : (
-                    <>
-                        {!loading && !showOpenForm && (
-                            <WalletOptions
-                                onCreate={createNewWallet}
-                                onOpen={() => setShowOpenForm(true)}
-                            />
-                        )}
-                        {!loading && showOpenForm && (
-                            <OpenWalletForm
-                                mnemonic={inputMnemonic}
-                                onChangeMnemonic={setInputMnemonic}
-                                onPaste={handlePaste}
-                                onOpen={() => openWallet(inputMnemonic.trim())}
-                            />
-                        )}
-                    </>
-                )}
-            </View>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
-            {/* Debug the conditional rendering */}
-            {console.log(
-                "Rendering mnemonic overlay:",
-                showMnemonic && getMnemonic()
-            )}
             {showMnemonic && (
                 <WalletMnemonicLabel
                     mnemonic={getMnemonic()}
