@@ -97,6 +97,33 @@ export function useWallet() {
      * Indicates if fee estimation is in progress
      */
     const [estimatingFee, setEstimatingFee] = useState(false)
+    /**
+     * Spark sats invoice address (null if not created)
+     */
+    const [sparkSatsAddress, setSparkSatsAddress] = useState<string | null>(
+        null
+    )
+    /**
+     * Indicates if the Spark sats address should be shown
+     */
+    const [showSparkSatsAddress, setShowSparkSatsAddress] = useState(false)
+    /**
+     * Indicates if any Spark sats invoice creation is in progress
+     */
+    const [sparkSatsLoading, setSparkSatsLoading] = useState(false)
+    /**
+     * Error message for Spark sats invoice creation, if any
+     */
+    const [sparkSatsError, setSparkSatsError] = useState<string | null>(null)
+
+    // Fulfill Spark invoice state
+    const [fulfillSparkLoading, setFulfillSparkLoading] = useState(false)
+    const [fulfillSparkError, setFulfillSparkError] = useState<string | null>(
+        null
+    )
+    const [fulfillSparkResult, setFulfillSparkResult] = useState<string | null>(
+        null
+    )
 
     const logger = createLogger("useWallet")
 
@@ -451,6 +478,13 @@ export function useWallet() {
         setPayInvoiceError(null)
         setLightningFeeEstimate(null)
         setEstimatingFee(false)
+        setSparkSatsAddress(null)
+        setShowSparkSatsAddress(false)
+        setSparkSatsLoading(false)
+        setSparkSatsError(null)
+        setFulfillSparkLoading(false)
+        setFulfillSparkError(null)
+        setFulfillSparkResult(null)
 
         try {
             const sdk = SparkSDK.getInstance()
@@ -459,6 +493,72 @@ export function useWallet() {
             // Ignore reset errors, just log them
             logger.error("Error resetting SDK:", e)
         }
+    }
+
+    /**
+     * Creates a Spark sats invoice (Spark address) for receiving payments.
+     * Falls back with a friendly error if not supported by the SDK version.
+     */
+    const createSparkSatsInvoice = async (
+        amountSats: number,
+        memo?: string
+    ): Promise<void> => {
+        setSparkSatsLoading(true)
+        setSparkSatsError(null)
+        try {
+            const sdk = SparkSDK.getInstance()
+            const address = await sdk.createSatsInvoice({
+                amount: amountSats,
+                memo,
+            })
+            setSparkSatsAddress(address)
+            setShowSparkSatsAddress(true)
+        } catch (e: any) {
+            const msg =
+                e?.name === "NotImplementedError"
+                    ? "Spark sats invoices are not supported by this SDK version. Please use Fulfill Spark Invoice for testing."
+                    : e?.message || "Failed to create Spark sats invoice"
+            setSparkSatsError(msg)
+        } finally {
+            setSparkSatsLoading(false)
+        }
+    }
+
+    /**
+     * Fulfill a Spark invoice (payer flow).
+     * For zero-amount invoices, provide amountSats.
+     */
+    const fulfillSparkInvoice = async (
+        invoice: string,
+        amountSats?: number
+    ): Promise<void> => {
+        setFulfillSparkLoading(true)
+        setFulfillSparkError(null)
+        setFulfillSparkResult(null)
+        try {
+            const sdk = SparkSDK.getInstance()
+            const result = await sdk.fulfillSparkInvoice([
+                { invoice: invoice.trim(), amountSats },
+            ])
+            setFulfillSparkResult(result)
+
+            // Refresh balance after fulfilling
+            const balance = await sdk.getBalance()
+            setBalance(Number(balance))
+        } catch (e: any) {
+            setFulfillSparkError(
+                e?.message || "Failed to fulfill Spark invoice"
+            )
+            // Re-throw so caller can keep the form open without closing
+            throw new Error(e?.message || "Failed to fulfill Spark invoice")
+        } finally {
+            setFulfillSparkLoading(false)
+        }
+    }
+
+    const hideSparkSatsAddress = () => {
+        setShowSparkSatsAddress(false)
+        setSparkSatsAddress(null)
     }
 
     return {
@@ -540,5 +640,23 @@ export function useWallet() {
         payLightningInvoice,
         /** Clears the Lightning fee estimate */
         clearLightningFeeEstimate,
+        /** Spark sats invoice address (null if not created) */
+        sparkSatsAddress,
+        /** Indicates if the Spark sats address should be shown */
+        showSparkSatsAddress,
+        /** Creates a Spark sats invoice (Spark address) for receiving payments */
+        createSparkSatsInvoice,
+        /** Hides the Spark sats address and shows the button again */
+        hideSparkSatsAddress,
+        /** Indicates if any Spark sats invoice creation is in progress */
+        sparkSatsLoading,
+        /** Error message for Spark sats invoice creation, if any */
+        sparkSatsError,
+
+        // Fulfill Spark invoice
+        fulfillSparkInvoice,
+        fulfillSparkLoading,
+        fulfillSparkError,
+        fulfillSparkResult,
     }
 }

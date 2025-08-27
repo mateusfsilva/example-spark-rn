@@ -1,8 +1,3 @@
-import "@azure/core-asynciterator-polyfill"
-import { Buffer } from "buffer"
-import "text-encoding"
-global.Buffer = Buffer
-
 import React, { useState } from "react"
 import {
     View,
@@ -30,10 +25,12 @@ import { ShowBitcoinAddressButton } from "@/components/ShowBitcoinAddressButton"
 import { BitcoinAddressLabel } from "@/components/BitcoinAddressLabel"
 import { ClaimDepositForm } from "@/components/ClaimDepositForm"
 import { CreateLightningInvoiceForm } from "@/components/CreateLightningInvoiceForm"
+import { CreateSparkSatsInvoiceForm } from "@/components/CreateSparkSatsInvoiceForm"
 import { LightningInvoiceLabel } from "@/components/LightningInvoiceLabel"
 import { WalletMnemonicLabel } from "@/components/WalletMnemonicLabel"
 import { TransferForm } from "@/components/TransferForm"
 import { PayLightningInvoiceForm } from "@/components/PayLightningInvoiceForm"
+import { FulfillSparkInvoiceForm } from "@/components/FulfillSparkInvoiceForm"
 
 export default function Index() {
     const {
@@ -76,6 +73,18 @@ export default function Index() {
         estimateLightningFee,
         payLightningInvoice,
         clearLightningFeeEstimate,
+        sparkSatsAddress,
+        showSparkSatsAddress,
+        createSparkSatsInvoice,
+        hideSparkSatsAddress,
+        sparkSatsLoading,
+        sparkSatsError,
+
+        // Fulfill Spark invoice
+        fulfillSparkInvoice,
+        fulfillSparkLoading,
+        fulfillSparkError,
+        fulfillSparkResult,
     } = useWallet()
 
     const [showOpenForm, setShowOpenForm] = useState(false)
@@ -90,6 +99,14 @@ export default function Index() {
     const [transferAmountSats, setTransferAmountSats] = useState("")
     const [showPayInvoiceForm, setShowPayInvoiceForm] = useState(false)
     const [lightningInvoiceInput, setLightningInvoiceInput] = useState("")
+    const [showSparkSatsForm, setShowSparkSatsForm] = useState(false)
+    const [sparkSatsAmount, setSparkSatsAmount] = useState("")
+    const [sparkSatsMemo, setSparkSatsMemo] = useState("")
+
+    // New local state for fulfill flow
+    const [showFulfillSparkForm, setShowFulfillSparkForm] = useState(false)
+    const [fulfillInvoiceInput, setFulfillInvoiceInput] = useState("")
+    const [fulfillAmountSatsInput, setFulfillAmountSatsInput] = useState("")
 
     const handlePaste = async () => {
         const text = await Clipboard.getStringAsync()
@@ -111,16 +128,24 @@ export default function Index() {
         setLightningInvoiceInput(text)
     }
 
+    const handlePasteInvoiceForFulfill = async () => {
+        const text = await Clipboard.getStringAsync()
+        setFulfillInvoiceInput(text)
+    }
+
     const handleLogout = async () => {
         setShowOpenForm(false)
         setShowClaimForm(false)
         setShowLightningForm(false)
         setShowTransferForm(false)
         setShowPayInvoiceForm(false)
+        setShowFulfillSparkForm(false)
         setInputMnemonic("")
         setReceiverAddress("")
         setTransferAmountSats("")
         setLightningInvoiceInput("")
+        setFulfillInvoiceInput("")
+        setFulfillAmountSatsInput("")
         await resetWalletState()
     }
 
@@ -368,6 +393,99 @@ export default function Index() {
                                         estimatingFee={estimatingFee}
                                         error={payInvoiceError}
                                     />
+                                )}
+                                {/* Button to open fulfill spark invoice form */}
+                                {!showFulfillSparkForm && (
+                                    <Button
+                                        title="Fulfill Spark Invoice"
+                                        onPress={() =>
+                                            setShowFulfillSparkForm(true)
+                                        }
+                                    />
+                                )}
+
+                                {showFulfillSparkForm && (
+                                    <FulfillSparkInvoiceForm
+                                        invoice={fulfillInvoiceInput}
+                                        amountSats={fulfillAmountSatsInput}
+                                        onChangeInvoice={setFulfillInvoiceInput}
+                                        onChangeAmountSats={
+                                            setFulfillAmountSatsInput
+                                        }
+                                        onFulfill={async () => {
+                                            const amount =
+                                                parseInt(
+                                                    fulfillAmountSatsInput
+                                                ) || undefined
+                                            try {
+                                                await fulfillSparkInvoice(
+                                                    fulfillInvoiceInput.trim(),
+                                                    amount
+                                                )
+                                                // Close form on success
+                                                setShowFulfillSparkForm(false)
+                                                setFulfillInvoiceInput("")
+                                                setFulfillAmountSatsInput("")
+                                            } catch {
+                                                // Keep form open on failure
+                                            }
+                                        }}
+                                        onClose={() => {
+                                            setShowFulfillSparkForm(false)
+                                            setFulfillInvoiceInput("")
+                                            setFulfillAmountSatsInput("")
+                                        }}
+                                        loading={fulfillSparkLoading}
+                                        error={fulfillSparkError}
+                                        result={fulfillSparkResult || undefined}
+                                    />
+                                )}
+
+                                {/* Existing "Create Spark Address" (will show friendly error if unsupported) */}
+                                {!showSparkSatsAddress &&
+                                    !showSparkSatsForm && (
+                                        <Button
+                                            title="Create Spark Address"
+                                            onPress={() =>
+                                                setShowSparkSatsForm(true)
+                                            }
+                                        />
+                                    )}
+
+                                {showSparkSatsForm && (
+                                    <CreateSparkSatsInvoiceForm
+                                        amountSats={sparkSatsAmount}
+                                        memo={sparkSatsMemo}
+                                        onChangeAmountSats={setSparkSatsAmount}
+                                        onChangeMemo={setSparkSatsMemo}
+                                        onGenerate={() => {
+                                            const amount =
+                                                parseInt(sparkSatsAmount) || 0
+                                            createSparkSatsInvoice(
+                                                amount,
+                                                sparkSatsMemo
+                                            )
+                                        }}
+                                        onClose={() =>
+                                            setShowSparkSatsForm(false)
+                                        }
+                                        loading={sparkSatsLoading}
+                                        error={sparkSatsError}
+                                    />
+                                )}
+
+                                {showSparkSatsAddress && sparkSatsAddress && (
+                                    <View style={styles.sparkAddressWrapper}>
+                                        <SparkAddressLabel
+                                            address={sparkSatsAddress}
+                                            onCopied={() => {
+                                                hideSparkSatsAddress()
+                                                setShowSparkSatsForm(false)
+                                                setSparkSatsAmount("")
+                                                setSparkSatsMemo("")
+                                            }}
+                                        />
+                                    </View>
                                 )}
                             </>
                         ) : (

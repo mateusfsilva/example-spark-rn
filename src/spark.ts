@@ -47,7 +47,7 @@ export class SparkSDK {
      */
     async initialize(
         mnemonics?: string,
-        network: "MAINNET" | "REGTEST" | "TESTNET" | "SIGNET" = "REGTEST"
+        network: "MAINNET" | "REGTEST" | "TESTNET" | "SIGNET" = "MAINNET"
     ): Promise<void> {
         if (this._isInitialized) {
             logger.info("Wallet already initialized")
@@ -59,8 +59,9 @@ export class SparkSDK {
         try {
             logger.info(`Initializing wallet on ${network} network`)
 
-            const { wallet, mnemonic } = await SparkWallet.initialize({
+            const { mnemonic, wallet } = await SparkWallet.initialize({
                 mnemonicOrSeed: mnemonics,
+                // accountNumber: 1,
                 signer: new ReactNativeSparkSigner(),
                 options: {
                     network: network,
@@ -591,6 +592,112 @@ export class SparkSDK {
             return feeEstimate
         } catch (error) {
             logger.error("Error getting Lightning send fee estimate:", error)
+
+            throw error
+        }
+    }
+
+    /**
+     * Creates a Spark invoice (Spark address) for a sats payment on Spark.
+     *
+     * @param params.amount Amount in sats to receive
+     * @param params.memo Optional memo
+     * @param params.senderPublicKey Optional expected sender pubkey (hex)
+     * @param params.expiryTime Optional expiry time
+     * @returns The Spark address (bech32m)
+     */
+    async createSatsInvoice({
+        amount,
+        memo,
+        senderPublicKey,
+        expiryTime,
+    }: {
+        amount: number
+        memo?: string
+        senderPublicKey?: string
+        expiryTime?: Date
+    }): Promise<string> {
+        logger.info("Creating Spark sats invoice...", {
+            amount,
+            memo,
+            expiryTime,
+        })
+
+        const startTime = Date.now()
+
+        try {
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const address = await this._wallet.createSatsInvoice({
+                amount,
+                memo,
+                senderPublicKey,
+                expiryTime,
+            })
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️  Spark sats invoice created:", {
+                address,
+                duration: `${duration}ms`,
+                method: "createSatsInvoice",
+            })
+
+            return `${address}`
+        } catch (error) {
+            logger.error("Error creating Spark sats invoice:", error)
+
+            if (error instanceof Error) {
+                throw new Error(
+                    `Create Spark sats invoice failed: ${error.message}`
+                )
+            }
+
+            throw error
+        }
+    }
+
+    /**
+     * Fulfill one or more Spark invoices.
+     * For zero-amount invoices, pass amountSats to specify the amount.
+     * Returns an ID string (transfer/payment id).
+     */
+    async fulfillSparkInvoice(
+        invoices: { invoice: string; amountSats?: number }[]
+    ): Promise<string> {
+        logger.info("Fulfilling Spark invoice(s)...", {
+            count: invoices.length,
+        })
+
+        const startTime = Date.now()
+
+        try {
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            // Map to SDK shape: { invoice: SparkAddressFormat, amount?: bigint }
+            const sparkInvoices = invoices.map(({ invoice, amountSats }) => ({
+                invoice: invoice as unknown as string,
+                amount:
+                    typeof amountSats === "number"
+                        ? BigInt(amountSats)
+                        : undefined,
+            }))
+
+            const result = await this._wallet.fulfillSparkInvoice(sparkInvoices)
+
+            const duration = Date.now() - startTime
+            logger.info("✨ ⏱️  Spark invoice(s) fulfilled:", {
+                result,
+                duration: `${duration}ms`,
+                method: "fulfillSparkInvoice",
+            })
+
+            return result
+        } catch (error) {
+            logger.error("Error fulfilling Spark invoice(s):", error)
 
             throw error
         }
