@@ -15,7 +15,7 @@
   "dependencies": {
     "@azure/core-asynciterator-polyfill": "^1.0.2",
     "@babel/plugin-transform-class-static-block": "^7.28.3",
-    "@buildonspark/spark-sdk": "0.2.11",
+    "@buildonspark/spark-sdk": "0.2.12",
     "@expo/vector-icons": "^14.1.0",
     "@react-navigation/native": "^7.1.6",
     "bech32": "^2.0.0",

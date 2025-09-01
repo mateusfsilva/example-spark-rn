@@ -96,3 +96,41 @@ Development notes
 - iOS: see [README.md](README.md) for clean prebuild steps and `npx expo run:ios`.
 - Babel: use [babel.config.js](babel.config.js) with Expo preset; include needed transforms for SDK features if required.
 - Metro: see [metro.config.js](metro.config.js) for Node polyfills
+
+## Code style rules (strict)
+
+- Preserve intentional blank lines. Do not remove empty lines between code statements.
+- Do not use single-line/compact control statements. Always use braces, even for single statements.
+  - Not allowed: `if (seen.has(value)) return "[Circular]"`
+  - Required: `if (seen.has(value)) { return "[Circular]" }`
+- Surround control statements with a blank line when they are not the first or only statement within their block/scope. This applies to: `if`, `else`, `case`, `while`, `switch`, `return`, `try`, `catch`, `finally`.
+  - Place one blank line before (and typically after) these statements unless the statement is the first (or only) line in the block.
+- Log calls must also be separated by blank lines (one blank line before and after), e.g., calls to `logger.debug`, `logger.info`, `logger.warn`, `logger.error`.
+
+Example (TypeScript):
+
+```typescript
+function example(items: any[], logger: Logger): void {
+    const count = items.length
+
+    if (count === 0) {
+        return
+    }
+
+    logger.info("Processing items...", { count })
+
+    for (const item of items) {
+        if (item == null) {
+            continue
+        }
+
+        try {
+            processItem(item)
+        } catch (err) {
+            logger.error("Failed to process item", err)
+        }
+    }
+
+    return
+}
+```

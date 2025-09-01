@@ -14,6 +14,11 @@ import {
     LightningSendRequest,
     LightningSendFeeEstimateInput,
 } from "@/sparkTypes"
+import { SparkEventManager } from "@/events/SparkEventManager"
+import {
+    SparkWalletEvents,
+    SparkWalletNormalizedEvents,
+} from "@/models/sparkWalletEvents"
 
 const logger = createLogger("SparkSDK")
 
@@ -23,12 +28,16 @@ export class SparkSDK {
     private _mnemonic: string | undefined
     private _isInitialized: boolean = false
 
+    // Event manager extracted from this class
+    private readonly events = new SparkEventManager()
+
     private constructor() {}
 
     public static getInstance(): SparkSDK {
         if (!SparkSDK.instance) {
             SparkSDK.instance = new SparkSDK()
         }
+
         return SparkSDK.instance
     }
 
@@ -51,6 +60,7 @@ export class SparkSDK {
     ): Promise<void> {
         if (this._isInitialized) {
             logger.info("Wallet already initialized")
+
             return
         }
 
@@ -61,7 +71,6 @@ export class SparkSDK {
 
             const { mnemonic, wallet } = await SparkWallet.initialize({
                 mnemonicOrSeed: mnemonics,
-                // accountNumber: 1,
                 signer: new ReactNativeSparkSigner(),
                 options: {
                     network: network,
@@ -69,12 +78,12 @@ export class SparkSDK {
             })
 
             const duration = Date.now() - startTime
+
             logger.info("✨ ⏱️  Wallet successfully initialized", {
                 duration: `${duration}ms`,
                 method: "initialize",
             })
 
-            // Store wallet and mnemonic in class properties
             this._wallet = wallet
             this._mnemonic = mnemonic
             this._isInitialized = true
@@ -83,7 +92,12 @@ export class SparkSDK {
                 this._mnemonic = mnemonics
             }
 
-            logger.info("Wallet successfully initialized")
+            // Bind events to the new wallet
+            this.events.bindWallet(wallet)
+
+            const names = this.events.getRegisteredEventNames()
+
+            console.log("Registered event names:", names)
         } catch (error) {
             logger.error("Error initializing wallet:", error)
 
@@ -101,8 +115,10 @@ export class SparkSDK {
         const startTime = Date.now()
 
         try {
-            // Check if wallet is available and cleanup connections
             if (this._wallet) {
+                // Unbind events before cleanup
+                this.events.unbindWallet()
+
                 await this._wallet.cleanupConnections()
             }
 
@@ -116,12 +132,10 @@ export class SparkSDK {
             logger.error("Error cleaning up connections:", e)
         }
 
-        // Reset instance variables
         this._wallet = undefined
         this._mnemonic = undefined
         this._isInitialized = false
 
-        // Reset the singleton instance
         SparkSDK.instance = null
 
         logger.info("Wallet instance reset complete")
@@ -701,5 +715,59 @@ export class SparkSDK {
 
             throw error
         }
+    }
+
+    /**
+     * Typed event subscriptions (delegated to SparkEventManager)
+     */
+    public on<E extends keyof SparkWalletEvents>(
+        event: E,
+        listener: SparkWalletEvents[E]
+    ): void {
+        this.events.on(event, listener)
+    }
+
+    public off<E extends keyof SparkWalletEvents>(
+        event: E,
+        listener: SparkWalletEvents[E]
+    ): void {
+        this.events.off(event, listener)
+    }
+
+    public once<E extends keyof SparkWalletEvents>(
+        event: E,
+        listener: SparkWalletEvents[E]
+    ): void {
+        this.events.once(event, listener)
+    }
+
+    public onWalletEvent(eventName: string, listener: (...args: any[]) => void): void {
+        this.events.onAny(eventName, listener)
+    }
+
+    public onNormalized<E extends keyof SparkWalletNormalizedEvents>(
+        event: E,
+        listener: SparkWalletNormalizedEvents[E]
+    ): void {
+        this.events.onNormalized(event, listener)
+    }
+
+    public offNormalized<E extends keyof SparkWalletNormalizedEvents>(
+        event: E,
+        listener: SparkWalletNormalizedEvents[E]
+    ): void {
+        this.events.offNormalized(event, listener)
+    }
+
+    public enableEventDebugging(): void {
+        this.events.enableEventDebugging()
+    }
+
+    public disableEventDebugging(): void {
+        this.events.disableEventDebugging()
+    }
+
+    public getRegisteredEventNames(): Array<string | symbol> {
+        return this.events.getRegisteredEventNames()
     }
 }
