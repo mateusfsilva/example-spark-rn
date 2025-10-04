@@ -1,11 +1,3 @@
-export type CreateLightningInvoiceParams = {
-    amountSats: number
-    memo?: string
-    expirySeconds?: number
-    includeSparkAddress?: boolean,
-    receiverIdentityPubkey?: string,
-    descriptionHash?: string,
-}
 
 export declare enum LightningReceiveRequestStatus {
     /**
@@ -137,16 +129,7 @@ export interface LightningReceiveRequest {
     paymentPreimage?: string | undefined
 }
 
-export type TransferParams = {
-    amountSats: number
-    receiverSparkAddress: string
-}
 
-export type PayLightningInvoiceParams = {
-    invoice: string
-    maxFeeSats: number
-    preferSpark: boolean
-}
 
 export interface LightningSendRequest {
     /**
@@ -191,19 +174,6 @@ export declare enum LightningSendRequestStatus {
     TRANSFER_COMPLETED = "TRANSFER_COMPLETED",
 }
 
-export interface WalletTransfer {
-    id: string
-    senderIdentityPublicKey: string
-    receiverIdentityPublicKey: string
-    status: keyof typeof TransferStatus
-    totalValue: number
-    expiryTime: Date | undefined
-    leaves: WalletTransferLeaf[]
-    createdTime: Date | undefined
-    updatedTime: Date | undefined
-    type: keyof typeof TransferType
-    transferDirection: keyof typeof TransferDirection
-}
 
 export declare enum TransferStatus {
     TRANSFER_STATUS_SENDER_INITIATED = 0,
@@ -217,6 +187,7 @@ export declare enum TransferStatus {
     TRANSFER_STATUS_SENDER_INITIATED_COORDINATOR = 8,
     TRANSFER_STATUS_RECEIVER_KEY_TWEAK_LOCKED = 9,
     TRANSFER_STATUS_RECEIVER_KEY_TWEAK_APPLIED = 10,
+    TRANSFER_STATUS_RECEIVER_REFUND_SIGNED = 11, // Adding missing status from SDK
     UNRECOGNIZED = -1,
 }
 
@@ -273,6 +244,27 @@ export declare enum Network {
     UNRECOGNIZED = -1,
 }
 
+import { TokenBalanceMap } from "@buildonspark/spark-sdk/native"
+
+export type WalletBalance = {
+    balance: bigint
+    tokenBalances: TokenBalanceMap
+}
+
 export interface LightningSendFeeEstimateInput {
     encodedInvoice: string;
+}
+
+export interface WalletTransfer {
+    id: string
+    senderIdentityPublicKey: string
+    receiverIdentityPublicKey: string
+    status: keyof typeof TransferStatus
+    totalValue: number
+    expiryTime: Date | undefined
+    leaves: WalletTransferLeaf[]
+    createdTime: Date | undefined
+    updatedTime: Date | undefined
+    type: keyof typeof TransferType
+    transferDirection: keyof typeof TransferDirection
 }

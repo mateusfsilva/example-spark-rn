@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { SparkSDK } from "@/spark"
+import { WalletBalance } from "@/sparkTypes"
 import { createLogger } from "@/logger"
 
 type WalletState = "idle" | "creating" | "opening" | "ready" | "error"
@@ -13,6 +14,10 @@ export function useWallet() {
      * Current wallet balance in satoshis (null if not loaded)
      */
     const [balance, setBalance] = useState<number | null>(null)
+    /**
+     * Complete wallet balance including token balances (null if not loaded)
+     */
+    const [walletStats, setWalletStats] = useState<WalletBalance | null>(null)
     /**
      * Indicates if any operation is in progress
      */
@@ -141,8 +146,10 @@ export function useWallet() {
             const sdk = SparkSDK.getInstance()
             await sdk.initialize(undefined, "MAINNET")
 
-            const balance = await sdk.getBalance()
-            setBalance(Number(balance))
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
 
             setState("ready")
         } catch (e: any) {
@@ -168,8 +175,10 @@ export function useWallet() {
             const sdk = SparkSDK.getInstance()
             await sdk.initialize(mnemonicPhrase, "MAINNET")
 
-            const balance = await sdk.getBalance()
-            setBalance(Number(balance))
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
 
             setState("ready")
         } catch (e: any) {
@@ -190,9 +199,11 @@ export function useWallet() {
 
         try {
             const sdk = SparkSDK.getInstance()
-            const balance = await sdk.getBalance()
 
-            setBalance(Number(balance))
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
         } catch (e: any) {
             setError(e?.message || "Failed to fetch balance")
         } finally {
@@ -280,8 +291,10 @@ export function useWallet() {
             await sdk.claimDeposit(txid)
 
             // Refresh balance after claim
-            const balance = await sdk.getBalance()
-            setBalance(Number(balance))
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
         } catch (e: any) {
             setClaimError(e?.message || "Failed to claim deposit")
         } finally {
@@ -372,8 +385,10 @@ export function useWallet() {
             })
 
             // Refresh balance after transfer
-            const balance = await sdk.getBalance()
-            setBalance(Number(balance))
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
         } catch (e: any) {
             const errorMessage = e?.message || "Failed to send transfer"
             setTransferError(errorMessage)
@@ -430,8 +445,10 @@ export function useWallet() {
             })
 
             // Refresh balance after payment
-            const balance = await sdk.getBalance()
-            setBalance(Number(balance))
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
 
             // Reset fee estimate after successful payment
             setLightningFeeEstimate(null)
@@ -535,6 +552,7 @@ export function useWallet() {
         setFulfillSparkLoading(true)
         setFulfillSparkError(null)
         setFulfillSparkResult(null)
+
         try {
             const sdk = SparkSDK.getInstance()
             const result = await sdk.fulfillSparkInvoice([
@@ -543,8 +561,10 @@ export function useWallet() {
             setFulfillSparkResult(result)
 
             // Refresh balance after fulfilling
-            const balance = await sdk.getBalance()
-            setBalance(Number(balance))
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
         } catch (e: any) {
             setFulfillSparkError(
                 e?.message || "Failed to fulfill Spark invoice"
@@ -564,6 +584,8 @@ export function useWallet() {
     return {
         /** Current wallet balance in satoshis (null if not loaded) */
         balance,
+        /** Complete wallet stats including token balances (null if not loaded) */
+        walletStats,
         /** Indicates if any operation is in progress */
         loading,
         /** Current wallet state: idle, creating, opening, ready or error */

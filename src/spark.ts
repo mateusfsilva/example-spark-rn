@@ -2,17 +2,18 @@ import { createLogger } from "@/logger"
 import {
     ReactNativeSparkSigner,
     SparkWallet,
-} from "@buildonspark/spark-sdk/native"
-
-import {
+    TokenBalanceMap,
     CreateLightningInvoiceParams,
-    LightningReceiveRequest,
     TransferParams,
     PayLightningInvoiceParams,
+} from "@buildonspark/spark-sdk/native"
+import {
+    LightningReceiveRequest,
     WalletTransfer,
     WalletLeaf,
     LightningSendRequest,
     LightningSendFeeEstimateInput,
+    WalletBalance,
 } from "@/sparkTypes"
 import { SparkEventManager } from "@/events/SparkEventManager"
 import {
@@ -142,13 +143,13 @@ export class SparkSDK {
     }
 
     /**
-     * Gets the current balance of the wallet.
+     * Gets the current balance of the wallet including token balances.
      * You can use the forceRefetch option to synchronize your wallet and claim any
      * pending incoming lightning payment, spark transfer, or bitcoin deposit before returning the balance.
      *
-     * @returns {Promise<BigInt>} The wallet's current balance in satoshis
+     * @returns {Promise<WalletBalance>} The wallet's current balance in satoshis and token balances
      */
-    async getBalance(): Promise<BigInt> {
+    async getBalance(): Promise<WalletBalance> {
         logger.info("Getting wallet balance...")
 
         const startTime = Date.now()
@@ -163,12 +164,29 @@ export class SparkSDK {
 
             const duration = Date.now() - startTime
             logger.info("✨ ⏱️ Balance result: ", {
-                balance: balanceResult?.balance.toString() ?? "0.00",
+                balance: balanceResult?.balance?.toString(),
+                tokenBalancesCount: balanceResult?.tokenBalances?.size || 0,
+                tokenBalances: balanceResult?.tokenBalances
+                    ? Array.from(balanceResult.tokenBalances.entries()).map(
+                          ([identifier, tokenData]) => ({
+                              identifier,
+                              balance: tokenData.balance.toString(),
+                              tokenName: tokenData.tokenMetadata.tokenName,
+                              tokenTicker: tokenData.tokenMetadata.tokenTicker,
+                              decimals: tokenData.tokenMetadata.decimals,
+                              maxSupply:
+                                  tokenData.tokenMetadata.maxSupply.toString(),
+                          })
+                      )
+                    : [],
                 duration: `${duration}ms`,
                 method: "getBalance",
             })
 
-            return balanceResult?.balance ?? BigInt(0)
+            return {
+                balance: balanceResult?.balance ?? BigInt(0),
+                tokenBalances: balanceResult?.tokenBalances ?? new Map(),
+            }
         } catch (error) {
             logger.error("Error getting wallet balance:", error)
 
@@ -741,7 +759,10 @@ export class SparkSDK {
         this.events.once(event, listener)
     }
 
-    public onWalletEvent(eventName: string, listener: (...args: any[]) => void): void {
+    public onWalletEvent(
+        eventName: string,
+        listener: (...args: any[]) => void
+    ): void {
         this.events.onAny(eventName, listener)
     }
 

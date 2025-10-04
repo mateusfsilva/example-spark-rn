@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import * as Clipboard from "expo-clipboard"
 import { useWallet } from "@/hooks/useWallet"
 import { Balance } from "@/components/Balance"
+import { TokensBalance } from "@/components/TokensBalance"
 import { WalletOptions } from "@/components/WalletOptions"
 import { OpenWalletForm } from "@/components/OpenWalletForm"
 import { ShowSparkAddressButton } from "@/components/ShowSparkAddressButton"
@@ -35,6 +36,7 @@ import { FulfillSparkInvoiceForm } from "@/components/FulfillSparkInvoiceForm"
 export default function Index() {
     const {
         balance,
+        walletStats,
         loading,
         state,
         error,
@@ -203,6 +205,7 @@ export default function Index() {
                                     loading={loading}
                                     onReload={fetchBalance}
                                 />
+                                <TokensBalance tokenBalance={walletStats?.tokenBalances} loading={loading} onReload={fetchBalance} />
                                 {!showSparkAddress ? (
                                     <ShowSparkAddressButton
                                         onShow={getSparkAddress}
