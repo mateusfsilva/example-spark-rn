@@ -1,4 +1,3 @@
-
 export declare enum LightningReceiveRequestStatus {
     /**
      * This is an enum value that represents values that could be added in the future.
@@ -129,8 +128,6 @@ export interface LightningReceiveRequest {
     paymentPreimage?: string | undefined
 }
 
-
-
 export interface LightningSendRequest {
     /**
      * The unique identifier of this entity across all Lightspark systems. Should be treated as an opaque
@@ -173,7 +170,6 @@ export declare enum LightningSendRequestStatus {
     PREIMAGE_PROVIDED = "PREIMAGE_PROVIDED",
     TRANSFER_COMPLETED = "TRANSFER_COMPLETED",
 }
-
 
 export declare enum TransferStatus {
     TRANSFER_STATUS_SENDER_INITIATED = 0,
@@ -244,7 +240,27 @@ export declare enum Network {
     UNRECOGNIZED = -1,
 }
 
-import { TokenBalanceMap } from "@buildonspark/spark-sdk/native"
+import {
+    TokenBalanceMap,
+    Bech32mTokenIdentifier,
+} from "@buildonspark/spark-sdk/native"
+
+// Local type definitions for types not exported by SDK
+export interface OutputWithPreviousTransactionData {
+    output: any | undefined
+    previousTransactionHash: Uint8Array
+    previousTransactionVout: number
+}
+
+export interface TokenTransactionWithStatus {
+    tokenTransaction: any
+    status: any // Allow any status type to match SDK
+}
+
+export interface QueryTokenTransactionsResponse {
+    tokenTransactionsWithStatus: TokenTransactionWithStatus[]
+    offset: number
+}
 
 export type WalletBalance = {
     balance: bigint
@@ -252,7 +268,25 @@ export type WalletBalance = {
 }
 
 export interface LightningSendFeeEstimateInput {
-    encodedInvoice: string;
+    encodedInvoice: string
+}
+
+export interface TransferTokensParams {
+    tokenIdentifier: Bech32mTokenIdentifier
+    tokenAmount: bigint
+    receiverSparkAddress: string
+    outputSelectionStrategy?: "SMALL_FIRST" | "LARGE_FIRST"
+    selectedOutputs?: OutputWithPreviousTransactionData[]
+}
+
+export interface QueryTokenTransactionsParams {
+    ownerPublicKeys?: string[]
+    issuerPublicKeys?: string[]
+    tokenTransactionHashes?: string[]
+    tokenIdentifiers?: string[]
+    outputIds?: string[]
+    pageSize?: number
+    offset?: number
 }
 
 export interface WalletTransfer {

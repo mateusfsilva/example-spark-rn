@@ -1,6 +1,11 @@
 import { useState } from "react"
 import { SparkSDK } from "@/spark"
-import { WalletBalance } from "@/sparkTypes"
+import {
+    WalletBalance,
+    TransferTokensParams,
+    QueryTokenTransactionsParams,
+    QueryTokenTransactionsResponse,
+} from "@/sparkTypes"
 import { createLogger } from "@/logger"
 
 type WalletState = "idle" | "creating" | "opening" | "ready" | "error"
@@ -129,6 +134,30 @@ export function useWallet() {
     const [fulfillSparkResult, setFulfillSparkResult] = useState<string | null>(
         null
     )
+
+    // Token transfer state
+    const [transferTokensLoading, setTransferTokensLoading] = useState(false)
+    const [transferTokensError, setTransferTokensError] = useState<
+        string | null
+    >(null)
+    const [transferTokensResult, setTransferTokensResult] = useState<
+        string | null
+    >(null)
+
+    // Token transactions query state
+    const [queryTokenTransactionsLoading, setQueryTokenTransactionsLoading] =
+        useState(false)
+    const [queryTokenTransactionsError, setQueryTokenTransactionsError] =
+        useState<string | null>(null)
+    const [queryTokenTransactionsResult, setQueryTokenTransactionsResult] =
+        useState<QueryTokenTransactionsResponse | null>(null)
+
+    // Token L1 address state
+    const [tokenL1Address, setTokenL1Address] = useState<string | null>(null)
+    const [tokenL1AddressLoading, setTokenL1AddressLoading] = useState(false)
+    const [tokenL1AddressError, setTokenL1AddressError] = useState<
+        string | null
+    >(null)
 
     const logger = createLogger("useWallet")
 
@@ -581,6 +610,96 @@ export function useWallet() {
         setSparkSatsAddress(null)
     }
 
+    /**
+     * Transfers tokens to another Spark address.
+     * Updates loading state and stores the transaction ID.
+     * @param params Transfer parameters including token identifier, amount, and receiver address
+     * @returns {Promise<void>}
+     */
+    const transferTokens = async (
+        params: TransferTokensParams
+    ): Promise<void> => {
+        setTransferTokensLoading(true)
+        setTransferTokensError(null)
+        setTransferTokensResult(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            const txId = await sdk.transferTokens(params)
+
+            setTransferTokensResult(txId)
+
+            // Refresh balance after transfer
+            const walletBalance = await sdk.getBalance()
+
+            setBalance(Number(walletBalance.balance))
+            setWalletStats(walletBalance)
+        } catch (e: any) {
+            setTransferTokensError(e?.message || "Failed to transfer tokens")
+        } finally {
+            setTransferTokensLoading(false)
+        }
+    }
+
+    /**
+     * Queries token transaction history with optional filters.
+     * Updates loading state and stores the query results.
+     * @param params Query parameters for filtering token transactions
+     * @returns {Promise<void>}
+     */
+    const queryTokenTransactions = async (
+        params: QueryTokenTransactionsParams
+    ): Promise<void> => {
+        setQueryTokenTransactionsLoading(true)
+        setQueryTokenTransactionsError(null)
+        setQueryTokenTransactionsResult(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            const result = await sdk.queryTokenTransactions(params)
+
+            setQueryTokenTransactionsResult(result)
+        } catch (e: any) {
+            setQueryTokenTransactionsError(
+                e?.message || "Failed to query token transactions"
+            )
+        } finally {
+            setQueryTokenTransactionsLoading(false)
+        }
+    }
+
+    /**
+     * Gets the L1 address for token operations.
+     * Updates loading state and stores the address.
+     * @returns {Promise<void>}
+     */
+    const getTokenL1Address = async (): Promise<void> => {
+        setTokenL1AddressLoading(true)
+        setTokenL1AddressError(null)
+
+        try {
+            const sdk = SparkSDK.getInstance()
+            const address = await sdk.getTokenL1Address()
+
+            setTokenL1Address(address)
+        } catch (e: any) {
+            setTokenL1AddressError(
+                e?.message || "Failed to get token L1 address"
+            )
+        } finally {
+            setTokenL1AddressLoading(false)
+        }
+    }
+
+    /**
+     * Gets the identity public key of the wallet.
+     * @returns {Promise<string>} The identity public key as hex string
+     */
+    const getIdentityPublicKey = async (): Promise<string> => {
+        const sdk = SparkSDK.getInstance()
+        return await sdk.getIdentityPublicKey()
+    }
+
     return {
         /** Current wallet balance in satoshis (null if not loaded) */
         balance,
@@ -680,5 +799,39 @@ export function useWallet() {
         fulfillSparkLoading,
         fulfillSparkError,
         fulfillSparkResult,
+
+        // Token transfer methods
+        /** Transfers tokens to another Spark address */
+        transferTokens,
+        /** Indicates if token transfer is in progress */
+        transferTokensLoading,
+        /** Error message for token transfer, if any */
+        transferTokensError,
+        /** Transaction ID of successful token transfer */
+        transferTokensResult,
+
+        // Token transactions query methods
+        /** Queries token transaction history with optional filters */
+        queryTokenTransactions,
+        /** Indicates if token transactions query is in progress */
+        queryTokenTransactionsLoading,
+        /** Error message for token transactions query, if any */
+        queryTokenTransactionsError,
+        /** Query results for token transactions */
+        queryTokenTransactionsResult,
+
+        // Token L1 address methods
+        /** Gets the L1 address for token operations */
+        getTokenL1Address,
+        /** Token L1 address (null if not retrieved) */
+        tokenL1Address,
+        /** Indicates if getting token L1 address is in progress */
+        tokenL1AddressLoading,
+        /** Error message for getting token L1 address, if any */
+        tokenL1AddressError,
+
+        // Identity public key method
+        /** Gets the identity public key of the wallet */
+        getIdentityPublicKey,
     }
 }

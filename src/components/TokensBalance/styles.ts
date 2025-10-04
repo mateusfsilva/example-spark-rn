@@ -2,84 +2,59 @@ import { StyleSheet } from "react-native"
 
 export const styles = StyleSheet.create({
     container: {
-        backgroundColor: "white",
-        borderRadius: 8,
-        padding: 16,
-        marginVertical: 8,
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 3.84,
-        elevation: 5,
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        marginVertical: 4,
+        width: "100%",
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 12,
-        minHeight: 32, // Define altura mínima para evitar sobreposição
     },
     title: {
-        fontSize: 18,
-        fontWeight: "600",
-        color: "#333",
-        flexShrink: 0, // Não permite que o título seja comprimido
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#1a1a1a",
+        flexShrink: 0,
     },
     reloadButton: {
-        backgroundColor: "#007AFF",
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 6,
-        flexDirection: "row",
-        alignItems: "center",
         marginLeft: 12,
-        flexShrink: 0, // Não permite que o botão seja comprimido
-    },
-    reloadButtonText: {
-        color: "white",
-        fontSize: 14,
-        fontWeight: "500",
+        flexShrink: 0,
     },
     scrollView: {
-        maxHeight: 120, // Reduz altura máxima para evitar espaço branco
-        paddingHorizontal: 4, // Adiciona padding lateral sutil
+        maxHeight: 60,
     },
     tokenItem: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "flex-start", // Alinha ao topo para dar mais espaço
-        paddingVertical: 12,
-        paddingHorizontal: 4,
-        borderBottomWidth: 1,
-        borderBottomColor: "#f0f0f0",
-        minHeight: 60, // Aumenta altura mínima
+        alignItems: "center",
+        paddingVertical: 16,
     },
     tokenInfo: {
         flex: 1,
-        marginRight: 12, // Espaçamento entre token info e balance
+        marginRight: 16,
     },
     tokenName: {
-        fontSize: 16,
-        fontWeight: "500",
-        color: "#333",
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#1a1a1a",
     },
     tokenTicker: {
-        fontSize: 12,
-        color: "#888",
-        marginTop: 2,
+        fontSize: 14,
+        color: "#6c757d",
+        marginTop: 4,
     },
     tokenBalance: {
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 18,
+        fontWeight: "700",
         color: "#007AFF",
         textAlign: "right",
-        minWidth: 80, // Largura mínima para o saldo
-        flexShrink: 0, // Não permite redução do tamanho
-        alignSelf: "flex-start", // Alinha com o topo do item
-        marginTop: 2, // Pequeno offset para alinhar com o texto principal
+        minWidth: 100,
+        flexShrink: 0,
     },
     noTokensText: {
         fontSize: 14,

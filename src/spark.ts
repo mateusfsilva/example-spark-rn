@@ -6,6 +6,7 @@ import {
     CreateLightningInvoiceParams,
     TransferParams,
     PayLightningInvoiceParams,
+    Bech32mTokenIdentifier,
 } from "@buildonspark/spark-sdk/native"
 import {
     LightningReceiveRequest,
@@ -14,6 +15,9 @@ import {
     LightningSendRequest,
     LightningSendFeeEstimateInput,
     WalletBalance,
+    TransferTokensParams,
+    QueryTokenTransactionsParams,
+    QueryTokenTransactionsResponse,
 } from "@/sparkTypes"
 import { SparkEventManager } from "@/events/SparkEventManager"
 import {
@@ -731,6 +735,161 @@ export class SparkSDK {
         } catch (error) {
             logger.error("Error fulfilling Spark invoice(s):", error)
 
+            throw error
+        }
+    }
+
+    /**
+     * Transfers tokens to another Spark address
+     *
+     * @param params Transfer parameters including token identifier, amount, and receiver address
+     * @returns Promise resolving to the transaction ID of the token transfer
+     */
+    async transferTokens(params: TransferTokensParams): Promise<string> {
+        logger.info("Transferring tokens...", {
+            tokenIdentifier: params.tokenIdentifier,
+            tokenAmount: params.tokenAmount.toString(),
+            receiverSparkAddress: params.receiverSparkAddress,
+            outputSelectionStrategy: params.outputSelectionStrategy,
+        })
+
+        const startTime = Date.now()
+
+        try {
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const txId = await this._wallet.transferTokens({
+                tokenIdentifier: params.tokenIdentifier,
+                tokenAmount: params.tokenAmount,
+                receiverSparkAddress: params.receiverSparkAddress,
+                outputSelectionStrategy: params.outputSelectionStrategy,
+                selectedOutputs: params.selectedOutputs,
+            })
+
+            const duration = Date.now() - startTime
+            logger.info("✨ Token transfer completed", {
+                txId,
+                duration: `${duration}ms`,
+                method: "transferTokens",
+            })
+
+            return txId
+        } catch (error) {
+            logger.error("Error transferring tokens:", error)
+            throw error
+        }
+    }
+
+    /**
+     * Queries token transaction history with optional filters
+     *
+     * @param params Query parameters for filtering token transactions
+     * @returns Promise resolving to token transactions with their current status
+     */
+    async queryTokenTransactions(
+        params: QueryTokenTransactionsParams
+    ): Promise<QueryTokenTransactionsResponse> {
+        logger.info("Querying token transactions...", {
+            ownerPublicKeys: params.ownerPublicKeys?.length || 0,
+            issuerPublicKeys: params.issuerPublicKeys?.length || 0,
+            tokenTransactionHashes: params.tokenTransactionHashes?.length || 0,
+            tokenIdentifiers: params.tokenIdentifiers?.length || 0,
+            outputIds: params.outputIds?.length || 0,
+            pageSize: params.pageSize,
+            offset: params.offset,
+        })
+
+        const startTime = Date.now()
+
+        try {
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const result = await this._wallet.queryTokenTransactions({
+                ownerPublicKeys: params.ownerPublicKeys,
+                issuerPublicKeys: params.issuerPublicKeys,
+                tokenTransactionHashes: params.tokenTransactionHashes,
+                tokenIdentifiers: params.tokenIdentifiers,
+                outputIds: params.outputIds,
+                pageSize: params.pageSize,
+                offset: params.offset,
+            })
+
+            const duration = Date.now() - startTime
+            logger.info("✨ Token transactions queried", {
+                transactionCount: result.tokenTransactionsWithStatus.length,
+                offset: result.offset,
+                duration: `${duration}ms`,
+                method: "queryTokenTransactions",
+            })
+
+            return result
+        } catch (error) {
+            logger.error("Error querying token transactions:", error)
+            throw error
+        }
+    }
+
+    /**
+     * Gets the L1 address for token operations
+     *
+     * @returns Promise resolving to the L1 address string
+     */
+    async getTokenL1Address(): Promise<string> {
+        logger.info("Getting token L1 address...")
+
+        const startTime = Date.now()
+
+        try {
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const address = await this._wallet.getTokenL1Address()
+
+            const duration = Date.now() - startTime
+            logger.info("✨ Token L1 address retrieved", {
+                address,
+                duration: `${duration}ms`,
+                method: "getTokenL1Address",
+            })
+
+            return address
+        } catch (error) {
+            logger.error("Error getting token L1 address:", error)
+            throw error
+        }
+    }
+
+    /**
+     * Gets the identity public key of the wallet
+     *
+     * @returns Promise resolving to the identity public key as hex string
+     */
+    async getIdentityPublicKey(): Promise<string> {
+        logger.info("Getting identity public key...")
+
+        const startTime = Date.now()
+
+        try {
+            if (!this._wallet) {
+                throw new Error("Wallet is not initialized")
+            }
+
+            const publicKey = await this._wallet.getIdentityPublicKey()
+
+            const duration = Date.now() - startTime
+            logger.info("✨ Identity public key retrieved", {
+                duration: `${duration}ms`,
+                method: "getIdentityPublicKey",
+            })
+
+            return publicKey
+        } catch (error) {
+            logger.error("Error getting identity public key:", error)
             throw error
         }
     }

@@ -9,6 +9,7 @@ import {
 } from "react-native"
 import { TokenBalanceMap } from "@buildonspark/spark-sdk/native"
 import { styles } from "./styles"
+import { MaterialIcons } from "@expo/vector-icons"
 
 interface TokensBalanceProps {
     tokenBalance?: TokenBalanceMap | null
@@ -35,7 +36,7 @@ export function TokensBalance({
                             {loading ? (
                                 <ActivityIndicator size="small" color="#ffffff" />
                             ) : (
-                                <Text style={styles.reloadButtonText}>Reload</Text>
+                              <MaterialIcons name="refresh" size={20} color="#007AFF" />
                             )}
                         </TouchableOpacity>
                     )}
@@ -68,7 +69,7 @@ export function TokensBalance({
                         {loading ? (
                             <ActivityIndicator size="small" color="#ffffff" />
                         ) : (
-                            <Text style={styles.reloadButtonText}>Reload</Text>
+                          <MaterialIcons name="refresh" size={20} color="#007AFF" />
                         )}
                     </TouchableOpacity>
                 )}

@@ -11,18 +11,20 @@ type Props = {
 export function Balance({ balance, loading, onReload }: Props) {
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>Saldo:</Text>
-            {loading ? (
-                <ActivityIndicator size="small" />
-            ) : (
-                <Text style={styles.value}>
-                    {balance !== null
-                        ? balance.toLocaleString("pt-BR") + " sats"
-                        : "--"}
-                </Text>
-            )}
-            <TouchableOpacity onPress={onReload} style={styles.reloadButton}>
-                <MaterialIcons name="refresh" size={24} color="#333" />
+            <View style={styles.leftSection}>
+                <Text style={styles.label}>Bitcoin Balance</Text>
+                {loading ? (
+                    <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                    <Text style={styles.value}>
+                        {balance !== null
+                            ? `${balance.toLocaleString("pt-BR")} sats`
+                            : "--"}
+                    </Text>
+                )}
+            </View>
+            <TouchableOpacity onPress={onReload} style={styles.reloadButton} disabled={loading}>
+                <MaterialIcons name="refresh" size={20} color="#007AFF" />
             </TouchableOpacity>
         </View>
     )

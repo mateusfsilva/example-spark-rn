@@ -16,6 +16,8 @@ import * as Clipboard from "expo-clipboard"
 import { useWallet } from "@/hooks/useWallet"
 import { Balance } from "@/components/Balance"
 import { TokensBalance } from "@/components/TokensBalance"
+import { TokenTransactions } from "@/components/TokenTransactions"
+import { TransferTokens } from "@/components/TransferTokens"
 import { WalletOptions } from "@/components/WalletOptions"
 import { OpenWalletForm } from "@/components/OpenWalletForm"
 import { ShowSparkAddressButton } from "@/components/ShowSparkAddressButton"
@@ -87,6 +89,21 @@ export default function Index() {
         fulfillSparkLoading,
         fulfillSparkError,
         fulfillSparkResult,
+
+        // Token transactions
+        queryTokenTransactions,
+        queryTokenTransactionsLoading,
+        queryTokenTransactionsError,
+        queryTokenTransactionsResult,
+
+        // Token transfer
+        transferTokens,
+        transferTokensLoading,
+        transferTokensError,
+        transferTokensResult,
+
+        // Identity public key
+        getIdentityPublicKey,
     } = useWallet()
 
     const [showOpenForm, setShowOpenForm] = useState(false)
@@ -109,6 +126,12 @@ export default function Index() {
     const [showFulfillSparkForm, setShowFulfillSparkForm] = useState(false)
     const [fulfillInvoiceInput, setFulfillInvoiceInput] = useState("")
     const [fulfillAmountSatsInput, setFulfillAmountSatsInput] = useState("")
+
+    // Token transactions state
+    const [showTokenTransactions, setShowTokenTransactions] = useState(false)
+
+    // Token transfer state
+    const [showTransferTokens, setShowTransferTokens] = useState(false)
 
     const handlePaste = async () => {
         const text = await Clipboard.getStringAsync()
@@ -142,6 +165,8 @@ export default function Index() {
         setShowTransferForm(false)
         setShowPayInvoiceForm(false)
         setShowFulfillSparkForm(false)
+        setShowTokenTransactions(false)
+        setShowTransferTokens(false)
         setInputMnemonic("")
         setReceiverAddress("")
         setTransferAmountSats("")
@@ -149,6 +174,48 @@ export default function Index() {
         setFulfillInvoiceInput("")
         setFulfillAmountSatsInput("")
         await resetWalletState()
+    }
+
+    const handleShowTokenTransactions = async () => {
+        setShowTokenTransactions(true)
+
+        try {
+            // Get our wallet's identity public key
+            const identityPublicKey = await getIdentityPublicKey()
+
+            // Query token transactions filtered by our public key
+            await queryTokenTransactions({
+                ownerPublicKeys: [identityPublicKey]
+            })
+        } catch (error) {
+            console.error("Error getting identity public key:", error)
+            // Fallback to query without filter if getting public key fails
+            await queryTokenTransactions({})
+        }
+    }
+
+    const handleHideTokenTransactions = () => {
+        setShowTokenTransactions(false)
+    }
+
+    const handleShowTransferTokens = () => {
+        setShowTransferTokens(true)
+    }
+
+    const handleHideTransferTokens = () => {
+        setShowTransferTokens(false)
+    }
+
+    const handleTransferTokens = async (params: {
+        tokenIdentifier: string
+        tokenAmount: bigint
+        receiverSparkAddress: string
+    }) => {
+        await transferTokens({
+            tokenIdentifier: params.tokenIdentifier as any,
+            tokenAmount: params.tokenAmount,
+            receiverSparkAddress: params.receiverSparkAddress,
+        })
     }
 
     return (
@@ -206,6 +273,54 @@ export default function Index() {
                                     onReload={fetchBalance}
                                 />
                                 <TokensBalance tokenBalance={walletStats?.tokenBalances} loading={loading} onReload={fetchBalance} />
+
+                                {/* Transfer Tokens Button */}
+                                {!showTransferTokens && (
+                                    <Button
+                                        title="Transfer Tokens"
+                                        onPress={handleShowTransferTokens}
+                                    />
+                                )}
+
+                                {/* Transfer Tokens Component */}
+                                {showTransferTokens && (
+                                    <TransferTokens
+                                        tokenBalances={walletStats?.tokenBalances}
+                                        loading={transferTokensLoading}
+                                        onTransfer={handleTransferTokens}
+                                        onClose={handleHideTransferTokens}
+                                    />
+                                )}
+
+                                {/* Token Transactions Button */}
+                                {!showTokenTransactions && (
+                                    <Button
+                                        title="View Token Transactions"
+                                        onPress={handleShowTokenTransactions}
+                                    />
+                                )}
+
+                                {/* Token Transactions Component */}
+                                {showTokenTransactions && (
+                                    <TokenTransactions
+                                        transactions={queryTokenTransactionsResult}
+                                        loading={queryTokenTransactionsLoading}
+                                        error={queryTokenTransactionsError}
+                                        onReload={async () => {
+                                            try {
+                                                const identityPublicKey = await getIdentityPublicKey()
+                                                await queryTokenTransactions({
+                                                    ownerPublicKeys: [identityPublicKey]
+                                                })
+                                            } catch (error) {
+                                                console.error("Error getting identity public key:", error)
+                                                await queryTokenTransactions({})
+                                            }
+                                        }}
+                                        onClose={handleHideTokenTransactions}
+                                    />
+                                )}
+
                                 {!showSparkAddress ? (
                                     <ShowSparkAddressButton
                                         onShow={getSparkAddress}
