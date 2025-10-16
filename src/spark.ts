@@ -1,29 +1,27 @@
-import { createLogger } from "@/logger"
-import {
-    ReactNativeSparkSigner,
-    SparkWallet,
-    TokenBalanceMap,
-    CreateLightningInvoiceParams,
-    TransferParams,
-    PayLightningInvoiceParams,
-    Bech32mTokenIdentifier,
-} from "@buildonspark/spark-sdk/native"
-import {
-    LightningReceiveRequest,
-    WalletTransfer,
-    WalletLeaf,
-    LightningSendRequest,
-    LightningSendFeeEstimateInput,
-    WalletBalance,
-    TransferTokensParams,
-    QueryTokenTransactionsParams,
-    QueryTokenTransactionsResponse,
-} from "@/sparkTypes"
 import { SparkEventManager } from "@/events/SparkEventManager"
+import { createLogger } from "@/logger"
 import {
     SparkWalletEvents,
     SparkWalletNormalizedEvents,
 } from "@/models/sparkWalletEvents"
+import {
+    LightningReceiveRequest,
+    LightningSendFeeEstimateInput,
+    LightningSendRequest,
+    QueryTokenTransactionsParams,
+    QueryTokenTransactionsResponse,
+    TransferTokensParams,
+    WalletBalance,
+    WalletLeaf,
+    WalletTransfer,
+} from "@/sparkTypes"
+import {
+    CreateLightningInvoiceParams,
+    PayLightningInvoiceParams,
+    ReactNativeSparkSigner,
+    SparkWallet,
+    TransferParams,
+} from "@buildonspark/spark-sdk/native"
 
 const logger = createLogger("SparkSDK")
 
@@ -79,6 +77,15 @@ export class SparkSDK {
                 signer: new ReactNativeSparkSigner(),
                 options: {
                     network: network,
+                    optimizationOptions: {
+                        auto: false,
+                        multiplicity: 5,
+                    },
+                    tokenOptimizationOptions: {
+                        enabled: true,
+                        intervalMs: 300000,
+                        minOutputsThreshold: 50,
+                    },
                 },
             })
 

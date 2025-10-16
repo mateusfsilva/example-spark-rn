@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import {
     View,
     TextInput,
@@ -9,6 +9,7 @@ import {
     Keyboard,
 } from "react-native"
 import { styles } from "@/components/PayLightningInvoiceForm/styles"
+import { isValidLightningInvoice } from "@/utils/lightningInvoiceParser"
 
 type Props = {
     invoice: string
@@ -39,6 +40,20 @@ export function PayLightningInvoiceForm({
     const hasFeeEstimate = feeEstimate !== null
     const canPay = hasInvoice && hasFeeEstimate && !loading && !estimatingFee
 
+    // Auto-estimate fee when a valid Lightning invoice is entered
+    useEffect(() => {
+        const trimmedInvoice = invoice.trim()
+
+        if (trimmedInvoice.length > 0 &&
+            isValidLightningInvoice(trimmedInvoice) &&
+            !hasFeeEstimate &&
+            !estimatingFee) {
+
+            console.log("Auto-estimating fee for valid Lightning invoice")
+            onEstimateFee()
+        }
+    }, [invoice, hasFeeEstimate, estimatingFee, onEstimateFee])
+
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.container}>
@@ -54,16 +69,19 @@ export function PayLightningInvoiceForm({
 
                 <Button title="Paste Invoice" onPress={onPasteInvoice} />
 
-                {hasInvoice && !hasFeeEstimate && (
+                {hasInvoice && !hasFeeEstimate && !estimatingFee && (
                     <View style={styles.buttonContainer}>
-                        {estimatingFee ? (
-                            <ActivityIndicator size="small" color="#007AFF" />
-                        ) : (
-                            <Button
-                                title="Estimate Fee"
-                                onPress={onEstimateFee}
-                            />
-                        )}
+                        <Button
+                            title="Estimate Fee"
+                            onPress={onEstimateFee}
+                        />
+                    </View>
+                )}
+
+                {estimatingFee && (
+                    <View style={styles.buttonContainer}>
+                        <ActivityIndicator size="small" color="#007AFF" />
+                        <Text style={styles.estimatingText}>Estimating fee...</Text>
                     </View>
                 )}
 

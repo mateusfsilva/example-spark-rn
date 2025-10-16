@@ -18,6 +18,8 @@ export const styles = StyleSheet.create({
         marginBottom: 8,
         fontSize: 16,
         minHeight: 48,
+        backgroundColor: "#fff",
+        color: "#000",
     },
     memoInput: {
         minHeight: 80,

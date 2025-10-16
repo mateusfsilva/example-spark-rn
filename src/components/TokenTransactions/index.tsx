@@ -38,13 +38,13 @@ export function TokenTransactions({
     }
 
     /**
-     * Converte um Uint8Array (uint128) em BigInt
-     * @param bytes Uint8Array (até 16 bytes)
+     * Converts a Uint8Array (uint128) to BigInt
+     * @param bytes Uint8Array (up to 16 bytes)
      * @param littleEndian default false -> assume big endian
      */
     function uint128FromBytes(bytes: Uint8Array, littleEndian = false): bigint {
         if (bytes.length > 16) {
-            throw new Error("Uint128 deve ter no máximo 16 bytes")
+            throw new Error("Uint128 must have at most 16 bytes")
         }
 
         let result = 0n
@@ -61,9 +61,9 @@ export function TokenTransactions({
     }
 
     /**
-     * Decodifica token amount e retorna formatos úteis
-     * @param bytes Uint8Array representando uint128
-     * @param decimals número de casas decimais do token (ex: 6)
+     * Decodes token amount and returns useful formats
+     * @param bytes Uint8Array representing uint128
+     * @param decimals number of decimal places of the token (e.g.: 6)
      * @param opts.optional { littleEndian?: boolean, autoDetect?: boolean }
      * @returns { raw: bigint, formatted: string, asNumber?: number }
      */
@@ -73,13 +73,13 @@ export function TokenTransactions({
         opts?: { littleEndian?: boolean; autoDetect?: boolean }
     ): { raw: bigint; formatted: string; asNumber?: number } {
         const littleEndian = !!opts?.littleEndian
-        // Se autoDetect estiver ativado, calcula os dois e escolhe o que faz mais sentido
+        // If autoDetect is enabled, calculates both and chooses the one that makes more sense
         let raw: bigint
         if (opts?.autoDetect) {
             const vLE = uint128FromBytes(bytes, true)
             const vBE = uint128FromBytes(bytes, false)
-            // Heurística: escolher o que, ao dividir por 10^decimals, fica menor, pois valores
-            // reais de token normalmente não são gigantescos. Ajuste se precisar.
+            // Heuristic: choose the one that, when divided by 10^decimals, becomes smaller, since real
+            // token values are normally not gigantic. Adjust if needed.
             raw = vLE <= vBE ? vLE : vBE
         } else {
             raw = uint128FromBytes(bytes, littleEndian)
@@ -89,10 +89,10 @@ export function TokenTransactions({
         const integerPart = raw / divisor
         let fractional = raw % divisor
 
-        // Formata parte fracionária com zeros à esquerda
+        // Formats fractional part with leading zeros
         let fractionalStr = fractional.toString().padStart(decimals, "0")
 
-        // Remove zeros à direita desnecessários
+        // Remove unnecessary trailing zeros
         fractionalStr = fractionalStr.replace(/0+$/, "")
 
         const formatted =
@@ -100,7 +100,7 @@ export function TokenTransactions({
                 ? `${integerPart.toString()}.${fractionalStr}`
                 : integerPart.toString()
 
-        // Retorna number só se for seguro
+        // Returns number only if it's safe
         let asNumber: number | undefined = undefined
         const maxSafe = BigInt(Number.MAX_SAFE_INTEGER)
         if (raw <= maxSafe) {

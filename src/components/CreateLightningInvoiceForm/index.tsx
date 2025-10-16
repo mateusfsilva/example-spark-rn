@@ -12,6 +12,17 @@ import {
 } from "react-native"
 import { styles } from "./styles"
 
+type Props = {
+    amountSats: string
+    memo: string
+    onChangeAmountSats: (text: string) => void
+    onChangeMemo: (text: string) => void
+    onGenerate: () => void
+    onClose: () => void
+    loading: boolean
+    error?: string | null
+}
+
 export function CreateLightningInvoiceForm({
     amountSats,
     memo,
@@ -32,7 +43,8 @@ export function CreateLightningInvoiceForm({
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <View style={styles.container}>
                     <TextInput
-                        placeholder="Amount in satoshis"
+                        placeholder="Enter amount in satoshis (e.g., 1000)"
+                        placeholderTextColor="#666"
                         value={amountSats}
                         onChangeText={onChangeAmountSats}
                         style={styles.input}
@@ -42,7 +54,8 @@ export function CreateLightningInvoiceForm({
                         returnKeyType="next"
                     />
                     <TextInput
-                        placeholder="Note (optional)"
+                        placeholder="Add a description or note for this payment (optional)"
+                        placeholderTextColor="#666"
                         value={memo}
                         onChangeText={onChangeMemo}
                         style={[styles.input, styles.memoInput]}

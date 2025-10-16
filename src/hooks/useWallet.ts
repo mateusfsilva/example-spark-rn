@@ -1,5 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SparkSDK } from "@/spark"
+import { processLightningPaymentRelay } from "@/utils/lightningInvoiceParser"
+import { saveMnemonic as saveMnemonicToStorage, getSavedMnemonic, clearSavedMnemonic, hasSavedMnemonic } from "@/utils/mnemonicStorage"
 import {
     WalletBalance,
     TransferTokensParams,
@@ -43,6 +45,14 @@ export function useWallet() {
      * Indicates if the Spark address should be shown
      */
     const [showSparkAddress, setShowSparkAddress] = useState(false)
+    /**
+     * Indicates if the user wants to save the mnemonic securely
+     */
+    const [saveMnemonic, setSaveMnemonic] = useState(false)
+    /**
+     * Indicates if there's a saved mnemonic available
+     */
+    const [hasSavedMnemonicState, setHasSavedMnemonicState] = useState(false)
     /**
      * Bitcoin address for the current wallet (null if not loaded)
      */
@@ -162,6 +172,26 @@ export function useWallet() {
     const logger = createLogger("useWallet")
 
     /**
+     * Check for saved mnemonic on hook initialization
+     */
+    useEffect(() => {
+        const checkSavedMnemonic = async () => {
+            const hasSaved = await hasSavedMnemonic()
+            setHasSavedMnemonicState(hasSaved)
+
+            if (hasSaved) {
+                const savedMnemonic = await getSavedMnemonic()
+                if (savedMnemonic) {
+                    // Auto-open wallet with saved mnemonic
+                    await openWallet(savedMnemonic)
+                }
+            }
+        }
+
+        checkSavedMnemonic()
+    }, [])
+
+    /**
      * Creates a new Bitcoin wallet (without mnemonic).
      * Updates the balance and the hook state.
      * @returns {Promise<void>}
@@ -210,6 +240,12 @@ export function useWallet() {
             setWalletStats(walletBalance)
 
             setState("ready")
+
+            // Save mnemonic if user requested it
+            if (saveMnemonic) {
+                await saveMnemonicToStorage(mnemonicPhrase)
+                setHasSavedMnemonicState(true)
+            }
         } catch (e: any) {
             setError(e?.message || "Failed to open wallet")
             setState("error")
@@ -481,9 +517,26 @@ export function useWallet() {
 
             // Reset fee estimate after successful payment
             setLightningFeeEstimate(null)
+
+            // Process relay call if configured in invoice memo (payment was successful)
+            try {
+                await processLightningPaymentRelay(invoice, true)
+            } catch (relayError) {
+                // Don't fail the payment if relay call fails, just log it
+                console.warn('Relay call failed after successful payment:', relayError)
+            }
         } catch (e: any) {
             const errorMessage = e?.message || "Failed to pay Lightning invoice"
             setPayInvoiceError(errorMessage)
+
+            // Process relay call if configured in invoice memo (payment failed)
+            try {
+                await processLightningPaymentRelay(invoice, false)
+            } catch (relayError) {
+                // Don't fail the payment if relay call fails, just log it
+                console.warn('Relay call failed after payment error:', relayError)
+            }
+
             // Re-throw the error so the caller knows it failed
             throw new Error(errorMessage)
         } finally {
@@ -531,6 +584,11 @@ export function useWallet() {
         setFulfillSparkLoading(false)
         setFulfillSparkError(null)
         setFulfillSparkResult(null)
+
+        // Clear saved mnemonic on logout
+        await clearSavedMnemonic()
+        setHasSavedMnemonicState(false)
+        setSaveMnemonic(false)
 
         try {
             const sdk = SparkSDK.getInstance()
@@ -719,6 +777,12 @@ export function useWallet() {
         bitcoinAddress,
         /** Indicates if the Bitcoin address should be shown */
         showBitcoinAddress,
+        /** Indicates if the user wants to save the mnemonic securely */
+        saveMnemonic,
+        /** Function to update the save mnemonic preference */
+        setSaveMnemonic,
+        /** Indicates if there's a saved mnemonic available */
+        hasSavedMnemonicState,
         /** Creates a new Bitcoin wallet (without mnemonic) */
         createNewWallet,
         /** Opens an existing wallet using the provided mnemonic */

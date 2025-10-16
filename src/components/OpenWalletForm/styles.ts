@@ -30,4 +30,30 @@ export const styles = StyleSheet.create({
         paddingBottom: 40,
         backgroundColor: "#fff",
     },
+    checkboxContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    checkbox: {
+        marginRight: 12,
+    },
+    checkboxLabel: {
+        fontSize: 16,
+        color: "#333",
+        flex: 1,
+    },
+    validationText: {
+        fontSize: 14,
+        textAlign: "center",
+        marginTop: 8,
+        fontWeight: "500",
+    },
+    validationSuccess: {
+        color: "#4CAF50",
+    },
+    validationError: {
+        color: "#F44336",
+    },
 })

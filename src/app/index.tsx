@@ -34,6 +34,8 @@ import { WalletMnemonicLabel } from "@/components/WalletMnemonicLabel"
 import { TransferForm } from "@/components/TransferForm"
 import { PayLightningInvoiceForm } from "@/components/PayLightningInvoiceForm"
 import { FulfillSparkInvoiceForm } from "@/components/FulfillSparkInvoiceForm"
+import { QRCodeScanner, QRCodeType } from "@/components/QRCodeScanner"
+import { isValidLightningInvoice } from "@/utils/lightningInvoiceParser"
 
 export default function Index() {
     const {
@@ -54,6 +56,9 @@ export default function Index() {
         showBitcoinAddress,
         getBitcoinAddress,
         hideBitcoinAddress,
+        saveMnemonic,
+        setSaveMnemonic,
+        hasSavedMnemonicState,
         claimDeposit,
         claimLoading,
         claimError,
@@ -133,9 +138,14 @@ export default function Index() {
     // Token transfer state
     const [showTransferTokens, setShowTransferTokens] = useState(false)
 
+    // QR Code scanner state
+    const [showQRScanner, setShowQRScanner] = useState(false)
+
     const handlePaste = async () => {
         const text = await Clipboard.getStringAsync()
-        setInputMnemonic(text)
+        // Clean the pasted text: trim and normalize whitespace
+        const cleanedText = text.trim().replace(/\s+/g, ' ')
+        setInputMnemonic(cleanedText)
     }
 
     const handlePasteTxid = async () => {
@@ -167,6 +177,7 @@ export default function Index() {
         setShowFulfillSparkForm(false)
         setShowTokenTransactions(false)
         setShowTransferTokens(false)
+        setShowQRScanner(false)
         setInputMnemonic("")
         setReceiverAddress("")
         setTransferAmountSats("")
@@ -216,6 +227,52 @@ export default function Index() {
             tokenAmount: params.tokenAmount,
             receiverSparkAddress: params.receiverSparkAddress,
         })
+    }
+
+    const handleQRCodeScanned = async (data: string, type: QRCodeType) => {
+        setShowQRScanner(false)
+
+        switch (type) {
+            case "lightning_invoice":
+                // Validate the invoice and automatically estimate fee
+                if (isValidLightningInvoice(data)) {
+                    setLightningInvoiceInput(data)
+                    setShowPayInvoiceForm(true)
+
+                    // Automatically estimate fee for valid Lightning invoices
+                    try {
+                        await estimateLightningFee(data)
+                    } catch (error) {
+                        console.log("Failed to auto-estimate fee:", error)
+                        // Don't show error to user, they can still manually estimate
+                    }
+                } else {
+                    Alert.alert(
+                        "Invalid Lightning Invoice",
+                        "The scanned QR code appears to be a Lightning invoice but is not valid."
+                    )
+                }
+                break
+
+            case "spark_address":
+                // Open transfer form
+                setReceiverAddress(data)
+                setShowTransferForm(true)
+                break
+
+            case "bitcoin_address":
+                // Open transfer form (for Bitcoin)
+                setReceiverAddress(data)
+                setShowTransferForm(true)
+                break
+
+            case "unknown":
+                Alert.alert(
+                    "QR Code Not Recognized",
+                    `The scanned QR Code was not recognized as a supported type.\n\nContent: ${data.substring(0, 50)}${data.length > 50 ? "..." : ""}`
+                )
+                break
+        }
     }
 
     return (
@@ -279,6 +336,14 @@ export default function Index() {
                                     <Button
                                         title="Transfer Tokens"
                                         onPress={handleShowTransferTokens}
+                                    />
+                                )}
+
+                                {/* Scan QR Code Button */}
+                                {!showQRScanner && (
+                                    <Button
+                                        title="Scan QR Code"
+                                        onPress={() => setShowQRScanner(true)}
                                     />
                                 )}
 
@@ -622,6 +687,8 @@ export default function Index() {
                                         onOpen={() =>
                                             openWallet(inputMnemonic.trim())
                                         }
+                                        saveMnemonic={saveMnemonic}
+                                        onChangeSaveMnemonic={setSaveMnemonic}
                                     />
                                 )}
                             </>
@@ -634,6 +701,13 @@ export default function Index() {
                 <WalletMnemonicLabel
                     mnemonic={getMnemonic()}
                     onCopied={hideWalletMnemonic}
+                />
+            )}
+
+            {showQRScanner && (
+                <QRCodeScanner
+                    onScan={handleQRCodeScanned}
+                    onClose={() => setShowQRScanner(false)}
                 />
             )}
         </SafeAreaView>

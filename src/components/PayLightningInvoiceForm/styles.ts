@@ -29,6 +29,12 @@ export const styles = StyleSheet.create({
         backgroundColor: "#f0f8ff",
         borderRadius: 8,
     },
+    estimatingText: {
+        fontSize: 14,
+        color: "#666",
+        textAlign: "center",
+        marginTop: 8,
+    },
     actionButtons: {
         marginTop: 16,
     },
